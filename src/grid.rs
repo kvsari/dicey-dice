@@ -2,6 +2,17 @@
 
 use std::{fmt, error, convert};
 use std::collections::HashMap;
+use std::default::Default;
+
+pub trait IntoAxialCoordinate {
+    fn axial_coordinate(self) -> AxialCoordinate;
+}
+
+impl IntoAxialCoordinate for (i64, i64) {
+    fn axial_coordinate(self) -> AxialCoordinate {
+        AxialCoordinate::new(self.0, self.1)
+    }
+}
 
 pub trait IntoCubeCoordinate {
     fn cube_coordinate(self) -> Result<CubeCoordinate, FailsZeroConstraint>;
@@ -10,6 +21,55 @@ pub trait IntoCubeCoordinate {
 impl IntoCubeCoordinate for (i64, i64, i64) {
     fn cube_coordinate(self) -> Result<CubeCoordinate, FailsZeroConstraint> {
         CubeCoordinate::new(self.0, self.1, self.2)
+    }
+}
+
+/// Axial coordinates can also be converted by calculating z as the negative sum of x + y.
+/// Since it is always possible to convert an axial coordinate into a cube coordinate this
+/// conversion will always succeed unless we are exceeding the bounds of `i64`.
+impl IntoCubeCoordinate for (i64, i64) {
+    fn cube_coordinate(self) -> Result<CubeCoordinate, FailsZeroConstraint> {
+        let d_z = self.0 + self.1;
+        CubeCoordinate::new(self.0, self.1, (-1 * d_z))
+    }
+}
+
+impl IntoCubeCoordinate for (u32, u32) {
+    fn cube_coordinate(self) -> Result<CubeCoordinate, FailsZeroConstraint> {
+        let d_z = self.0 + self.1;
+        CubeCoordinate::new(self.0 as i64, self.1 as i64, d_z as i64)
+    }
+}
+
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct AxialCoordinate {
+    x: i64,
+    y: i64,
+}
+
+impl AxialCoordinate {
+    pub fn new(x: i64, y: i64) -> Self {
+        AxialCoordinate { x, y }
+    }
+
+    pub fn x(&self) -> i64 {
+        self.x
+    }
+
+    pub fn y(&self) -> i64 {
+        self.y
+    }
+}
+
+impl IntoAxialCoordinate for AxialCoordinate {
+    fn axial_coordinate(self) -> AxialCoordinate {
+        self
+    }
+}
+
+impl IntoCubeCoordinate for AxialCoordinate {
+    fn cube_coordinate(self) -> Result<CubeCoordinate, FailsZeroConstraint> {
+        (self.x, self.y).cube_coordinate()
     }
 }
 
@@ -38,6 +98,12 @@ impl CubeCoordinate {
 
     pub fn z(&self) -> i64 {
         self.z
+    }
+}
+
+impl IntoAxialCoordinate for CubeCoordinate {
+    fn axial_coordinate(self) -> AxialCoordinate {
+        AxialCoordinate::new(self.x, self.y)
     }
 }
 
@@ -76,18 +142,39 @@ pub enum Orientation {
  */
 
 pub struct Rectangular<T> {
-    base_hexes: u32,
-    hex_layers: u32,
+    columns: u32,
+    rows: u32,
     //base_orientation: Orientation,
     hexes: HashMap<CubeCoordinate, Hexagon<T>>,
 }
 
-impl<T: Default> Rectangular<T> {
-    pub fn generate(base_hexes: u32, hex_layers: u32, d: T) -> Rectangular<T> {
+impl<T: Copy> Rectangular<T> {
+    pub fn generate(columns: u32, rows: u32, d: T) -> Rectangular<T> {
+        let mut hexes: HashMap<CubeCoordinate, Hexagon<T>> = HashMap::new();
+        
+        // Generate the rectangle using axial coordinates
+        for row in 0..rows {
+            for c in 0..columns {
+                let col = (row / 2) + c;
+                let coordinate = (col, row).cube_coordinate().unwrap();
+                let hexagon = Hexagon::new(coordinate, d).unwrap();
+                hexes.insert(coordinate, hexagon);
+            }
+        }
+        
+        /*
+        for y in hex_layers {
+            for x in hex_layers {
+                let offset_x = (y / 2) + x;
+                let coordinate = CubeCoordinate::new(offset_x, y, 
+            }
+        }
+        */
+        
         Rectangular {
-            base_hexes: base_hexes,
-            hex_layers: hex_layers,
-            hexes: HashMap::new(),
+            columns: columns,
+            rows: rows,
+            hexes: hexes,
         }
     }
 
@@ -101,19 +188,7 @@ impl<T: Default> Rectangular<T> {
     }
 }
 
-/*
-pub enum BadCoordinateType {
-    FailsZeroConstraint
-}
 
-#[derive(Debug, Copy, Clone)]
-pub struct BadCoordinate {
-    error: BadCoordinateType,
-    x: i64,
-    y: i64,
-    z: i64,
-}
-*/
 
 /// Error when the three cube coordinates don't fulfil the 0 constraint where summing them
 /// all together must equal 0. Therefore, x + y + z = 0. Error when x + y + z != 0.
@@ -224,6 +299,27 @@ mod test {
     use super::*;
 
     #[test]
+    fn axial_into_cube() {
+        let axial = AxialCoordinate::new(0, 0);
+        let cube = axial.cube_coordinate().unwrap();
+        assert!(cube.x() == 0);
+        assert!(cube.y() == 0);
+        assert!(cube.z() == 0);
+
+        let axial = AxialCoordinate::new(1, 0);
+        let cube = axial.cube_coordinate().unwrap();
+        assert!(cube.x() == 1);
+        assert!(cube.y() == 0);
+        assert!(cube.z() == -1);
+
+        let axial = AxialCoordinate::new(0, 1);
+        let cube = axial.cube_coordinate().unwrap();
+        assert!(cube.x() == 0);
+        assert!(cube.y() == 1);
+        assert!(cube.z() == -1);
+    }
+
+    #[test]
     fn rect_grid_1x1() {
         let r_grid = Rectangular::generate(1, 1, 4);
 
@@ -231,6 +327,20 @@ mod test {
         let hexagon = r_grid.fetch((0, 0, 0)).unwrap();        
         assert!(origin == hexagon.grid_loc());
     }
+    
+    #[test]
+    fn rect_grid_1x4() {
+        let r_grid = Rectangular::generate(1, 4, 4);
+
+        let origin = CubeCoordinate::new(0, 0, 0).unwrap();
+        let hexagon = r_grid.fetch(origin).unwrap();
+        assert!(origin == hexagon.grid_loc());
+
+        let last = CubeCoordinate::new(3, 0, -3).unwrap();
+        let hexagon = r_grid.fetch(last).unwrap();
+        assert!(last == hexagon.grid_loc());
+    }
+    
 
     //fn rect_grid_2x2() -> 
 }
