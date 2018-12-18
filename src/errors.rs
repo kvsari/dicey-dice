@@ -2,19 +2,19 @@
 
 use std::{fmt, error, convert};
 
-use grid::CubeCoordinate;
+use coordinate::Cube;
 
 /// Error when the three cube coordinates don't fulfil the 0 constraint where summing them
 /// all together must equal 0. Therefore, x + y + z = 0. Error when x + y + z != 0.
 #[derive(Debug, Copy, Clone)]
 pub struct FailsZeroConstraint {
-    x: i64,
-    y: i64,
-    z: i64,
+    x: i32,
+    y: i32,
+    z: i32,
 }
 
 impl FailsZeroConstraint {
-    pub fn new(x: i64, y: i64, z: i64) -> Self {
+    pub fn new(x: i32, y: i32, z: i32) -> Self {
         FailsZeroConstraint { x, y, z }
     }
 }
@@ -39,13 +39,13 @@ impl error::Error for FailsZeroConstraint {
 
 #[derive(Debug, Copy, Clone)]
 pub struct NoHexAtCoordinate {
-    x: i64,
-    y: i64,
-    z: i64,
+    x: i32,
+    y: i32,
+    z: i32,
 }
 
 impl NoHexAtCoordinate {
-    pub fn new(x: i64, y: i64, z: i64) -> Self {
+    pub fn new(x: i32, y: i32, z: i32) -> Self {
         NoHexAtCoordinate { x, y, z }
     }
 }
@@ -62,8 +62,8 @@ impl error::Error for NoHexAtCoordinate {
     }
 }
 
-impl convert::From<CubeCoordinate> for NoHexAtCoordinate {
-    fn from(cc: CubeCoordinate) -> Self {
+impl convert::From<Cube> for NoHexAtCoordinate {
+    fn from(cc: Cube) -> Self {
         NoHexAtCoordinate::new(cc.x(), cc.y(), cc.z())
     }
 }
