@@ -1,6 +1,58 @@
 //! Coordinate systems.
 
+use std::{convert, ops};
+
 use errors::*;
+
+/// The different directions as `Cube` coordinate additions. This is for both flat and
+/// pointy orientations of the hexagonal grid.
+pub static DIRECTION: &[Cube] = &[// Assuming pointy in comments (just as valid for flat).
+    Cube { x: -1, y: 1, z: 0 },   // Left
+    Cube { x: 1, y: -1, z: 0 },   // Right
+    Cube { x: 0, y: 1, z: -1 },   // UpLeft
+    Cube { x: 1, y: 0, z: -1 },   // UpRight
+    Cube { x: -1, y: 0, z: 1 },   // DownLeft,
+    Cube { x: 0, y: -1, z: 1 },   // DownRight,
+];
+
+/// A hexagon on a hexagonal grid has six directions it can go. These six directions
+/// correspond to a 'pointed' oriented grid. Each movement can be added to the current
+/// hexagon to get the coordinates of the new one. This is used for calculating neighbours.
+/// ```ascii
+///  /\
+/// /  \
+/// |  |
+/// |  |
+/// \  /
+///  \/
+/// ```
+pub enum PointDirection {
+    Left = 0,
+    Right = 1,
+    UpLeft = 2,
+    UpRight = 3,
+    DownLeft = 4,
+    DownRight = 5,
+}
+
+/// A hexagon on a hexagonal grid has six directions it can go. These six directions
+/// correspond to a 'flat' grid. Each movement can be added to the current hexagon to get
+/// the coordinates of the new one. This is used for calculating neighbours.
+/// ```ascii
+///   __
+///  /  \
+/// /    \
+/// \    /
+///  \__/
+/// ```
+pub enum FlatDirection {
+    Up = 2,
+    Down = 5,
+    LeftUp = 0,
+    RightUp = 3,
+    LeftDown = 4,
+    RightDown = 1,
+}
 
 pub trait IntoAxial {
     fn axial(self) -> Axial;
@@ -8,6 +60,18 @@ pub trait IntoAxial {
 
 pub trait IntoCube {
     fn cube(self) -> Result<Cube, FailsZeroConstraint>;
+}
+
+impl IntoAxial for (i32, i32) {
+    fn axial(self) -> Axial {
+        Axial::new(self.0, self.1)
+    }
+}
+
+impl IntoAxial for (u32, u32) {
+    fn axial(self) -> Axial {
+        Axial::new(self.0 as i32, self.1 as i32)
+    }
 }
 
 impl IntoCube for (i32, i32, i32) {
@@ -22,7 +86,7 @@ impl IntoCube for (i32, i32, i32) {
 impl IntoCube for (i32, i32) {
     fn cube(self) -> Result<Cube, FailsZeroConstraint> {
         let d_z = self.0 + self.1;
-        Cube::new(self.0, self.1, (-1 * d_z))
+        Cube::new(self.0, self.1, -1 * d_z)
     }
 }
 
@@ -64,6 +128,25 @@ impl IntoCube for Axial {
     }
 }
 
+impl ops::Add for Axial {
+    type Output = Axial;
+
+    fn add(self, other: Axial) -> Axial {
+        Axial {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
+}
+
+impl ops::Add<Cube> for Axial {
+    type Output = Axial;
+
+    fn add(self, other: Cube) -> Axial {
+        self + other.axial()
+    }
+}
+
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct Cube {
     x: i32,
@@ -101,6 +184,32 @@ impl IntoAxial for Cube {
 impl IntoCube for Cube {
     fn cube(self) -> Result<Cube, FailsZeroConstraint> {
         Ok(self)
+    }
+}
+
+impl ops::Add for Cube {
+    type Output = Cube;
+    
+    fn add(self, other: Cube) -> Cube {
+        Cube {
+            x: self.x + other.x,
+            y: self.y + other.y,
+            z: self.z + other.z,
+        }
+    }
+}
+
+impl ops::Add<Axial> for Cube {
+    type Output = Cube;
+
+    fn add(self, other: Axial) -> Cube {
+        self + other.cube().unwrap()
+    }
+}
+
+impl convert::From<Axial> for Cube {
+    fn from(a: Axial) -> Self {
+        a.cube().unwrap()
     }
 }
 

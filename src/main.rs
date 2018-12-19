@@ -7,3 +7,5 @@ mod errors;
 fn main() {
     println!("Dicey Dice starting...");
 }
+
+//std::ops::Add

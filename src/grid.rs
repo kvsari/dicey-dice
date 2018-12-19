@@ -1,9 +1,8 @@
 //! Contain the hexagonal grid using cube coordinates.
 
-use std::convert;
 use std::collections::HashMap;
 
-use coordinate::{Cube, IntoCube, Axial};
+use coordinate::{Cube, IntoCube, DIRECTION, PointDirection, Axial};
 use errors::*;
 
 pub struct Hexagon<T> {
@@ -21,8 +20,26 @@ impl<T> Hexagon<T> {
         })
     }
 
+    pub fn from_cube(cube: Cube, data: T) -> Self {
+        Hexagon {
+            grid_loc: cube,
+            data: data,
+        }
+    }
+
+    pub fn from_axial(axial: Axial, data: T) -> Self {
+        Hexagon {
+            grid_loc: axial.cube().unwrap(),
+            data: data,
+        }
+    }
+
     pub fn grid_loc(&self) -> Cube {
         self.grid_loc
+    }
+
+    pub fn data(&self) -> &T {
+        &self.data
     }
 }
 
@@ -33,6 +50,46 @@ pub enum Orientation {
     Left,
 }
  */
+
+fn generate_new_row<T: Copy>(length: i32, data: T) -> Vec<Hexagon<T>> {
+    let first = Cube::new(0, 0, 0).unwrap();
+    let mut row: Vec<Hexagon<T>> = Vec::new();
+    
+    for x in 0..length {
+        if x == 0 {
+            row.push(Hexagon::from_cube(first, data));
+        } else {
+            let previous = row[x as usize - 1].grid_loc();
+            row.push(Hexagon::from_cube(
+                previous + DIRECTION[PointDirection::Right as usize], data
+            ));
+        }
+    }
+
+    row
+}
+
+fn row_down_right_from_row<T: Copy>(row: &Vec<Hexagon<T>>) -> Vec<Hexagon<T>> {
+    let mut new_row: Vec<Hexagon<T>> = Vec::new();
+    
+    for hex in row.iter() {
+        let new_loc = hex.grid_loc() + DIRECTION[PointDirection::DownRight as usize]; 
+        new_row.push(Hexagon::from_cube(new_loc, *hex.data()))
+    }
+
+    new_row
+}
+
+fn row_down_left_from_row<T: Copy>(row: &Vec<Hexagon<T>>) -> Vec<Hexagon<T>> {
+    let mut new_row: Vec<Hexagon<T>> = Vec::new();
+    
+    for hex in row.iter() {
+        let new_loc = hex.grid_loc() + DIRECTION[PointDirection::DownLeft as usize]; 
+        new_row.push(Hexagon::from_cube(new_loc, *hex.data()))
+    }
+
+    new_row
+}
 
 pub struct Rectangular<T> {
     columns: i32,
