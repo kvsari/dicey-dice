@@ -51,41 +51,37 @@ pub enum Orientation {
 }
  */
 
-fn generate_new_row<T: Copy>(length: i32, data: T) -> Vec<Hexagon<T>> {
+fn generate_new_row(length: i32) -> Vec<Cube> {
     let first = Cube::new(0, 0, 0).unwrap();
-    let mut row: Vec<Hexagon<T>> = Vec::new();
+    let mut row: Vec<Cube> = Vec::new();
     
     for x in 0..length {
         if x == 0 {
-            row.push(Hexagon::from_cube(first, data));
+            row.push(first);
         } else {
-            let previous = row[x as usize - 1].grid_loc();
-            row.push(Hexagon::from_cube(
-                previous + DIRECTION[PointDirection::Right as usize], data
-            ));
+            let previous = row[x as usize - 1];
+            row.push(previous + DIRECTION[PointDirection::Right as usize]);
         }
     }
 
     row
 }
 
-fn row_down_right_from_row<T: Copy>(row: &Vec<Hexagon<T>>) -> Vec<Hexagon<T>> {
-    let mut new_row: Vec<Hexagon<T>> = Vec::new();
+fn row_down_right_from_row(row: &Vec<Cube>) -> Vec<Cube> {
+    let mut new_row: Vec<Cube> = Vec::new();
     
     for hex in row.iter() {
-        let new_loc = hex.grid_loc() + DIRECTION[PointDirection::DownRight as usize]; 
-        new_row.push(Hexagon::from_cube(new_loc, *hex.data()))
+        new_row.push(*hex + DIRECTION[PointDirection::DownRight as usize]);
     }
 
     new_row
 }
 
-fn row_down_left_from_row<T: Copy>(row: &Vec<Hexagon<T>>) -> Vec<Hexagon<T>> {
-    let mut new_row: Vec<Hexagon<T>> = Vec::new();
+fn row_down_left_from_row(row: &Vec<Cube>) -> Vec<Cube> {
+    let mut new_row: Vec<Cube> = Vec::new();
     
     for hex in row.iter() {
-        let new_loc = hex.grid_loc() + DIRECTION[PointDirection::DownLeft as usize]; 
-        new_row.push(Hexagon::from_cube(new_loc, *hex.data()))
+        new_row.push(*hex + DIRECTION[PointDirection::DownLeft as usize]);
     }
 
     new_row
@@ -99,20 +95,19 @@ pub struct Rectangular<T> {
 }
 
 impl<T: Copy> Rectangular<T> {
-    pub fn generate(columns: u32, rows: u32, d: T) -> Rectangular<T> {
+    pub fn generate(columns: u32, rows: u32, d: T) -> Rectangular<T> {        
         let mut hexes: HashMap<Cube, Hexagon<T>> = HashMap::new();
 
         let rows = rows as i32;
         let columns = columns as i32;
-        
-        // Generate the rectangle using axial coordinates
-        for row in 0..rows {
-            for c in 0..columns {
-                let col = (row / -2) + c;
-                let coordinate = (col, (-1 * row)).cube().unwrap();
-                println!("Coordinate: {:?}", &coordinate);
-                let hexagon = Hexagon::new(coordinate, d).unwrap();
-                hexes.insert(coordinate, hexagon);
+
+        if rows > 0 && columns > 0 {
+            let first_row = generate_new_row(columns);
+            hexes.extend(first_row.iter().map(|h| (*h, Hexagon::new(h, d).unwrap())));
+            for row in 1..rows {
+                if row % 2 == 0 {
+                } else {
+                }
             }
         }
                 
@@ -135,7 +130,17 @@ impl<T: Copy> Rectangular<T> {
 
 #[cfg(test)]
 mod test {
-    use super::*;    
+    use super::*;
+
+    #[test]
+    fn generate_row() {
+        let row = generate_new_row(4);
+        assert!(row.len() == 4);
+        assert!(row[0] == (0, 0).into());
+        assert!(row[1] == (1, 0).into());
+        assert!(row[2] == (2, 0).into());
+        assert!(row[3] == (3, 0).into());
+    }
 
     #[test]
     fn rect_grid_1x1() {
@@ -154,7 +159,7 @@ mod test {
         let hexagon = r_grid.fetch(origin).unwrap();        
         assert!(origin == hexagon.grid_loc());
 
-        let origin = Cube::new(1, 0, -1).unwrap();
+        let origin = Cube::new(1, -1, 0).unwrap();
         let hexagon = r_grid.fetch(origin).unwrap();        
         assert!(origin == hexagon.grid_loc());
     }
@@ -167,7 +172,7 @@ mod test {
         let hexagon = r_grid.fetch(origin).unwrap();
         assert!(origin == hexagon.grid_loc());
 
-        let last = Cube::new(3, 0, -3).unwrap();
+        let last = Cube::new(3, -3, 0).unwrap();
         let hexagon = r_grid.fetch(last).unwrap();
         assert!(last == hexagon.grid_loc());
     }
@@ -180,11 +185,15 @@ mod test {
         let hexagon = r_grid.fetch(origin).unwrap();
         assert!(origin == hexagon.grid_loc());
 
+        let origin = Cube::new(0, -1, 1).unwrap();
+        let hexagon = r_grid.fetch(origin).unwrap();
+        assert!(origin == hexagon.grid_loc());
+
         let origin = Cube::new(1, -1, 0).unwrap();
         let hexagon = r_grid.fetch(origin).unwrap();
         assert!(origin == hexagon.grid_loc());
     }
-
+    
     /*
     #[test]
     fn rect_grid_4x4() {

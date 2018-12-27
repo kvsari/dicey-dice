@@ -19,12 +19,12 @@ pub static DIRECTION: &[Cube] = &[// Assuming pointy in comments (just as valid 
 /// correspond to a 'pointed' oriented grid. Each movement can be added to the current
 /// hexagon to get the coordinates of the new one. This is used for calculating neighbours.
 /// ```ascii
-///  /\
-/// /  \
-/// |  |
-/// |  |
-/// \  /
-///  \/
+///   / \      
+///  /   \
+/// |     |
+/// |     |
+///  \   /
+///   \ /  
 /// ```
 pub enum PointDirection {
     Left = 0,
@@ -39,11 +39,11 @@ pub enum PointDirection {
 /// correspond to a 'flat' grid. Each movement can be added to the current hexagon to get
 /// the coordinates of the new one. This is used for calculating neighbours.
 /// ```ascii
-///   __
-///  /  \
-/// /    \
-/// \    /
-///  \__/
+///   ___
+///  /   \
+/// /     \
+/// \     /
+///  \___/
 /// ```
 pub enum FlatDirection {
     Up = 2,
@@ -85,34 +85,38 @@ impl IntoCube for (i32, i32, i32) {
 /// conversion will always succeed unless we are exceeding the bounds of `i64`.
 impl IntoCube for (i32, i32) {
     fn cube(self) -> Result<Cube, FailsZeroConstraint> {
-        let d_z = self.0 + self.1;
-        Cube::new(self.0, self.1, -1 * d_z)
+        //let d_z = self.0 + self.1;
+        //Cube::new(self.0, self.1, -1 * d_z)
+        Axial::from(self).cube()
     }
 }
 
 impl IntoCube for (u32, u32) {
     fn cube(self) -> Result<Cube, FailsZeroConstraint> {
-        (self.0 as i32, self.1 as i32).cube()
+        //(self.0 as i32, self.1 as i32).cube()
+        Axial::from((self.0 as i32, self.1 as i32)).cube()
     }
 }
 
+/// Axial coordinates simulate a (X, Y) cartesian plane but is not quite one. Therefore
+/// to avoid confusion we have `c` for columns going diagonally down to the right, and rows.
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct Axial {
-    x: i32,
-    y: i32,
+    column: i32,
+    row: i32,
 }
 
 impl Axial {
-    pub fn new(x: i32, y: i32) -> Self {
-        Axial { x, y }
+    pub fn new(column: i32, row: i32) -> Self {
+        Axial { column, row }
     }
 
-    pub fn x(&self) -> i32 {
-        self.x
+    pub fn column(&self) -> i32 {
+        self.column
     }
 
-    pub fn y(&self) -> i32 {
-        self.y
+    pub fn row(&self) -> i32 {
+        self.row
     }
 }
 
@@ -124,17 +128,26 @@ impl IntoAxial for Axial {
 
 impl IntoCube for Axial {
     fn cube(self) -> Result<Cube, FailsZeroConstraint> {
-        (self.x, self.y).cube()
+        //(self.x, self.y).cube()
+        let y = self.column + self.row;
+        Cube::new(self.column, -1 * y, self.row)
     }
 }
 
+impl From<(i32, i32)> for Axial {
+    fn from(tuple: (i32, i32)) -> Self {
+        Axial::new(tuple.0, tuple.1)
+    }
+}
+
+/*
 impl ops::Add for Axial {
     type Output = Axial;
 
     fn add(self, other: Axial) -> Axial {
         Axial {
-            x: self.x + other.x,
-            y: self.y + other.y,
+            column: self.column + other.column,
+            row: self.row + other.row,
         }
     }
 }
@@ -146,6 +159,7 @@ impl ops::Add<Cube> for Axial {
         self + other.axial()
     }
 }
+*/
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct Cube {
@@ -187,6 +201,12 @@ impl IntoCube for Cube {
     }
 }
 
+impl IntoCube for &Cube {
+    fn cube(self) -> Result<Cube, FailsZeroConstraint> {
+        Ok(*self)
+    }
+}
+
 impl ops::Add for Cube {
     type Output = Cube;
     
@@ -213,6 +233,12 @@ impl convert::From<Axial> for Cube {
     }
 }
 
+impl convert::From<(i32, i32)> for Cube {
+    fn from(tuple: (i32, i32)) -> Self {
+        tuple.cube().unwrap()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -228,13 +254,49 @@ mod test {
         let axial = Axial::new(1, 0);
         let cube = axial.cube().unwrap();
         assert!(cube.x() == 1);
-        assert!(cube.y() == 0);
-        assert!(cube.z() == -1);
+        assert!(cube.y() == -1);
+        assert!(cube.z() == 0);
 
         let axial = Axial::new(0, 1);
         let cube = axial.cube().unwrap();
         assert!(cube.x() == 0);
+        assert!(cube.y() == -1);
+        assert!(cube.z() == 1);
+
+        let axial = Axial::new(-1, 0);
+        let cube = axial.cube().unwrap();
+        assert!(cube.x() == -1);
+        assert!(cube.y() == 1);
+        assert!(cube.z() == 0);
+
+        let axial = Axial::new(0, -1);
+        let cube = axial.cube().unwrap();
+        assert!(cube.x() == 0);
         assert!(cube.y() == 1);
         assert!(cube.z() == -1);
+
+        let axial = Axial::new(1, -1);
+        let cube = axial.cube().unwrap();
+        assert!(cube.x() == 1);
+        assert!(cube.y() == 0);
+        assert!(cube.z() == -1);
+
+        let axial = Axial::new(-1, -1);
+        let cube = axial.cube().unwrap();
+        assert!(cube.x() == -1);
+        assert!(cube.y() == 2);
+        assert!(cube.z() == -1);
+
+        let axial = Axial::new(-1, 1);
+        let cube = axial.cube().unwrap();
+        assert!(cube.x() == -1);
+        assert!(cube.y() == 0);
+        assert!(cube.z() == 1);
+
+        let axial = Axial::new(1, 1);
+        let cube = axial.cube().unwrap();
+        assert!(cube.x() == 1);
+        assert!(cube.y() == -2);
+        assert!(cube.z() == 1);
     }
 }
