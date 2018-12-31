@@ -1,8 +1,7 @@
 //! Common errors.
-
 use std::{fmt, error, convert};
 
-use coordinate::Cube;
+use crate::coordinate::Cube;
 
 /// Error when the three cube coordinates don't fulfil the 0 constraint where summing them
 /// all together must equal 0. Therefore, x + y + z = 0. Error when x + y + z != 0.

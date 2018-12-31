@@ -2,5 +2,7 @@
 name = "dicey-dice"
 version = "0.0.0"
 authors = ["Stephan Luther <kvsari@gmail.com>"]
+edition = "2018"
 
 [dependencies]
+derive-getters = "0.0.7"

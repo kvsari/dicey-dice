@@ -1,8 +1,7 @@
 //! Coordinate systems.
-
 use std::{convert, ops};
 
-use errors::*;
+use crate::errors::*;
 
 /// The different directions as `Cube` coordinate additions. This is for both flat and
 /// pointy orientations of the hexagonal grid.
