@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 derive-getters = "0.0.7"
+rand = "0.6.0"

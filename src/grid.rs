@@ -155,13 +155,13 @@ impl<T: Copy + Clone> Rectangular<T> {
 
     /// Will clone a copy of the `Rectangular<T>` grid and iterate through all hexagons
     /// applying the sent function/closure.
-    pub fn fork<F: Fn(T) -> T>(&self, f: F) -> Self {
+    pub fn fork<F: FnMut(T) -> T>(&self, mut f: F) -> Self {
         let mut clone = self.clone();
 
         clone
             .hexes
             .iter_mut()
-            .for_each(|(_, mut hexagon)| hexagon.mutate((f)(*hexagon.data())));
+            .for_each(|(_, hexagon)| hexagon.mutate((f)(*hexagon.data())));
         
         clone
     }
