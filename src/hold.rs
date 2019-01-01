@@ -1,5 +1,5 @@
 //! Territorial hold. Every tile on the hex grid is a territorial holding of a player.
-use std::fmt;
+use std::{default, fmt};
 
 use derive_getters::Getters;
 
@@ -23,5 +23,11 @@ impl Hold {
 impl fmt::Display for Hold {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}|{}", &self.owner, &self.dice)
+    }
+}
+
+impl default::Default for Hold {
+    fn default() -> Self {
+        Hold::new(0, 0)
     }
 }

@@ -1,11 +1,13 @@
 //! Contain the hexagonal grid using cube coordinates.
-use std::fmt;
+use std::{fmt, iter};
 use std::collections::HashMap;
 
 use crate::coordinate::{Cube, IntoCube, DIRECTION, PointDirection, Axial};
 use crate::errors::*;
 
-#[derive(Debug)]
+/// This struct is probably redundant. Why can't I just store the `T` at the coordinate
+/// location at `Cube` in the collection?
+#[derive(Debug, Copy, Clone)]
 pub struct Hexagon<T> {
     grid_loc: Cube,
     data: T,    
@@ -41,6 +43,19 @@ impl<T> Hexagon<T> {
 
     pub fn data(&self) -> &T {
         &self.data
+    }
+
+    pub fn update(&self, new_data: T) -> Self {
+        Hexagon {
+            grid_loc: self.grid_loc,
+            data: new_data
+        }
+    }
+
+    /// Internal mutation. Only to be used by `fork` operations. Will not edit the grid
+    /// location slot.
+    fn mutate(&mut self, new_data: T) {
+        self.data = new_data;
     }
 }
 
@@ -88,16 +103,15 @@ fn row_down_left_from_row(row: &Vec<Cube>) -> Vec<Cube> {
     new_row
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Rectangular<T> {
     columns: i32,
     rows: i32,
-    coordinates: Vec<Vec<Cube>>, // Store coordinates in grid to save regenerating them.
-    //base_orientation: Orientation,
+    coordinates: Vec<Vec<Cube>>, // Store coordinates in grid to save on regenerating them.
     hexes: HashMap<Cube, Hexagon<T>>,
 }
 
-impl<T: Copy> Rectangular<T> {
+impl<T: Copy + Clone> Rectangular<T> {
     pub fn generate(columns: u32, rows: u32, d: T) -> Rectangular<T> {        
         let mut hexes: HashMap<Cube, Hexagon<T>> = HashMap::new();
 
@@ -134,6 +148,23 @@ impl<T: Copy> Rectangular<T> {
             .get(&coordinate)
             .ok_or(NoHexAtCoordinate::from(coordinate).into())
     }
+
+    pub fn iter(&self) -> Iter<T> {
+        Iter::new(self.columns as usize, self.rows as usize, &self.coordinates, &self.hexes)
+    }
+
+    /// Will clone a copy of the `Rectangular<T>` grid and iterate through all hexagons
+    /// applying the sent function/closure.
+    pub fn fork<F: Fn(T) -> T>(&self, f: F) -> Self {
+        let mut clone = self.clone();
+
+        clone
+            .hexes
+            .iter_mut()
+            .for_each(|(_, mut hexagon)| hexagon.mutate((f)(*hexagon.data())));
+        
+        clone
+    }
 }
 
 /// Simple staggered display of the hexagonal board. Use an ncurses lib for more
@@ -162,6 +193,59 @@ impl<T: fmt::Display> fmt::Display for Rectangular<T> {
             });
 
         write!(f, "{}", &output)
+    }
+}
+
+/*
+impl<T> From<Vec<Hexagon<T>>> for Rectangular<T> {
+    
+}
+*/
+
+/// In order iterator for the grid.
+pub struct Iter<'a, T> {
+    column: usize,
+    row: usize,
+    columns: usize,
+    rows: usize,
+    coordinates: &'a Vec<Vec<Cube>>,
+    hexes: &'a HashMap<Cube, Hexagon<T>>,
+}
+
+impl<'a, T> Iter<'a, T> {
+    fn new(
+        columns: usize,
+        rows: usize,
+        coordinates: &'a Vec<Vec<Cube>>,
+        hexes: &'a HashMap<Cube, Hexagon<T>>) -> Self {
+        Iter {
+            column: 0,
+            row: 0,
+            columns: columns,
+            rows: rows,
+            coordinates: coordinates,
+            hexes: hexes,
+        }
+    }
+}
+
+impl<'a, T> iter::Iterator for Iter<'a, T> {
+    type Item = &'a Hexagon<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {        
+        if self.column >= self.columns {
+            self.row += 1;
+            self.column = 0;
+        }
+
+        if self.row >= self.rows {
+            return None;
+        }
+
+        let coordinate = &self.coordinates[self.row][self.column];
+        self.column += 1;
+
+        self.hexes.get(coordinate)
     }
 }
 
@@ -287,5 +371,46 @@ mod test {
     fn rectangle_display_3x3() {
         let r_grid = Rectangular::generate(3, 3, 'A');
         assert_eq!("A A A \n  A A A \nA A A \n", r_grid.to_string());
+    }
+
+    #[test]
+    fn grid_0x0_iterator() {
+        let r_grid = Rectangular::generate(0, 0, 4);
+        let mut iter = r_grid.iter();
+        assert!(iter.next().is_none());
+    }
+
+    #[test]
+    fn grid_2x2_iterator() {
+        let r_grid = Rectangular::generate(2, 2, 4);
+
+        let mut iter = r_grid.iter();
+
+        let origin = Cube::new(0, 0, 0).unwrap();
+        assert!(origin == iter.next().unwrap().grid_loc());
+
+        let origin = Cube::new(1, -1, 0).unwrap();
+        assert!(origin == iter.next().unwrap().grid_loc());
+
+        let origin = Cube::new(0, -1, 1).unwrap();
+        assert!(origin == iter.next().unwrap().grid_loc());
+
+        let origin = Cube::new(1, -2, 1).unwrap();
+        assert!(origin == iter.next().unwrap().grid_loc());
+
+        assert!(iter.next().is_none());
+    }
+
+    #[test]
+    fn fork_2x2_grid() {
+        let r_grid = Rectangular::generate(2, 2, 4);
+
+        let f_grid = r_grid.fork(|h| h * 2);
+
+        f_grid
+            .iter()
+            .for_each(|h| {
+                assert!(*h.data() == 8);
+            });
     }
 }
