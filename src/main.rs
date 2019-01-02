@@ -1,11 +1,10 @@
 //! Console entrypoint
 
+extern crate dicey_dice_lib as lib;
+
 use rand::prelude::*;
 
-mod hold;
-mod grid;
-mod coordinate;
-mod errors;
+use lib::{grid, hold};
 
 /// TODO: Move this intoo a `game` module or something.
 fn generate_random_2x2_board_game() -> grid::Rectangular<hold::Hold> {

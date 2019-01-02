@@ -1,5 +1,6 @@
 //! Coordinate systems.
 use std::{convert, ops};
+use std::ops::Neg;
 
 use crate::errors::*;
 
@@ -75,7 +76,7 @@ impl IntoAxial for (u32, u32) {
 
 impl IntoCube for (i32, i32, i32) {
     fn cube(self) -> Result<Cube, FailsZeroConstraint> {
-        Cube::new(self.0, self.1, self.2)
+        Cube::construct(self.0, self.1, self.2)
     }
 }
 
@@ -110,11 +111,11 @@ impl Axial {
         Axial { column, row }
     }
 
-    pub fn column(&self) -> i32 {
+    pub fn column(self) -> i32 {
         self.column
     }
 
-    pub fn row(&self) -> i32 {
+    pub fn row(self) -> i32 {
         self.row
     }
 }
@@ -129,7 +130,7 @@ impl IntoCube for Axial {
     fn cube(self) -> Result<Cube, FailsZeroConstraint> {
         //(self.x, self.y).cube()
         let y = self.column + self.row;
-        Cube::new(self.column, -1 * y, self.row)
+        Cube::construct(self.column, y.neg(), self.row)
     }
 }
 
@@ -168,7 +169,7 @@ pub struct Cube {
 }
 
 impl Cube {
-    pub fn new(x: i32, y: i32, z: i32) -> Result<Self, FailsZeroConstraint> {
+    pub fn construct(x: i32, y: i32, z: i32) -> Result<Self, FailsZeroConstraint> {
         if x + y + z != 0 {
             return Err(FailsZeroConstraint::new(x, y, z));
         }

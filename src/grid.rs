@@ -14,26 +14,26 @@ pub struct Hexagon<T> {
 }
 
 impl<T> Hexagon<T> {
-    pub fn new<C: IntoCube>(
+    pub fn construct<C: IntoCube>(
         location: C, data: T
     ) -> Result<Self, FailsZeroConstraint> {
         Ok(Hexagon {
             grid_loc: location.cube()?,
-            data: data,
+            data,
         })
     }
 
     pub fn from_cube(cube: Cube, data: T) -> Self {
         Hexagon {
             grid_loc: cube,
-            data: data,
+            data,
         }
     }
 
     pub fn from_axial(axial: Axial, data: T) -> Self {
         Hexagon {
             grid_loc: axial.cube().unwrap(),
-            data: data,
+            data,
         }
     }
 
@@ -68,7 +68,7 @@ pub enum Orientation {
  */
 
 fn generate_new_row(length: i32) -> Vec<Cube> {
-    let first = Cube::new(0, 0, 0).unwrap();
+    let first = Cube::construct(0, 0, 0).unwrap();
     let mut row: Vec<Cube> = Vec::new();
     
     for x in 0..length {
@@ -83,7 +83,7 @@ fn generate_new_row(length: i32) -> Vec<Cube> {
     row
 }
 
-fn row_down_right_from_row(row: &Vec<Cube>) -> Vec<Cube> {
+fn row_down_right_from_row(row: &[Cube]) -> Vec<Cube> {
     let mut new_row: Vec<Cube> = Vec::new();
     
     for hex in row.iter() {
@@ -93,7 +93,7 @@ fn row_down_right_from_row(row: &Vec<Cube>) -> Vec<Cube> {
     new_row
 }
 
-fn row_down_left_from_row(row: &Vec<Cube>) -> Vec<Cube> {
+fn row_down_left_from_row(row: &[Cube]) -> Vec<Cube> {
     let mut new_row: Vec<Cube> = Vec::new();
     
     for hex in row.iter() {
@@ -123,7 +123,7 @@ impl<T: Copy + Clone> Rectangular<T> {
         if rows > 0 && columns > 0 {
             let mut last_row = generate_new_row(columns);
             coordinates.push(last_row.clone());
-            hexes.extend(last_row.iter().map(|h| (*h, Hexagon::new(h, d).unwrap())));
+            hexes.extend(last_row.iter().map(|h| (*h, Hexagon::construct(h, d).unwrap())));
             //println!("ROW 0: {:?}", &last_row);
             for row in 1..rows {
                 last_row = if row % 2 == 0 {
@@ -133,7 +133,9 @@ impl<T: Copy + Clone> Rectangular<T> {
                 };
                 //println!("ROW {}: {:?}", &row, &last_row);
                 coordinates.push(last_row.clone());
-                hexes.extend(last_row.iter().map(|h| (*h, Hexagon::new(h, d).unwrap())));
+                hexes.extend(
+                    last_row.iter().map(|h| (*h, Hexagon::construct(h, d).unwrap()))
+                );
             }
         }
                 
@@ -146,7 +148,7 @@ impl<T: Copy + Clone> Rectangular<T> {
         let coordinate = location.cube()?;
         self.hexes
             .get(&coordinate)
-            .ok_or(NoHexAtCoordinate::from(coordinate).into())
+            .ok_or_else(|| NoHexAtCoordinate::from(coordinate).into())
     }
 
     pub fn iter(&self) -> Iter<T> {
@@ -208,7 +210,7 @@ pub struct Iter<'a, T> {
     row: usize,
     columns: usize,
     rows: usize,
-    coordinates: &'a Vec<Vec<Cube>>,
+    coordinates: &'a [Vec<Cube>],
     hexes: &'a HashMap<Cube, Hexagon<T>>,
 }
 
@@ -216,15 +218,15 @@ impl<'a, T> Iter<'a, T> {
     fn new(
         columns: usize,
         rows: usize,
-        coordinates: &'a Vec<Vec<Cube>>,
+        coordinates: &'a [Vec<Cube>],
         hexes: &'a HashMap<Cube, Hexagon<T>>) -> Self {
         Iter {
             column: 0,
             row: 0,
-            columns: columns,
-            rows: rows,
-            coordinates: coordinates,
-            hexes: hexes,
+            columns,
+            rows,
+            coordinates,
+            hexes,
         }
     }
 }

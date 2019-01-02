@@ -4,6 +4,11 @@ version = "0.0.0"
 authors = ["Stephan Luther <kvsari@gmail.com>"]
 edition = "2018"
 
+[lib]
+name = "dicey_dice_lib"
+path = "src/lib.rs"
+edition = "2018"
+
 [dependencies]
 derive-getters = "0.0.7"
 rand = "0.6.0"
