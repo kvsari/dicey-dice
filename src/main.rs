@@ -4,17 +4,17 @@ extern crate dicey_dice_lib as lib;
 
 use rand::prelude::*;
 
-use lib::{grid, hold};
+use lib::{hexagon, game};
 
 /// TODO: Move this intoo a `game` module or something.
-fn generate_random_2x2_board_game() -> grid::Rectangular<hold::Hold> {
+fn generate_random_2x2_board_game() -> hexagon::grid::Rectangular<game::hold::Hold> {
     let mut rng = thread_rng();    
-    let grid = grid::Rectangular::generate(2, 2, hold::Hold::default());
+    let grid = hexagon::grid::Rectangular::generate(2, 2, game::hold::Hold::default());
     
     grid.fork(move |_| {
         let player_code = rng.gen_range(1, 3);
         let player_dice = rng.gen_range(1, 6);
-        hold::Hold::new(player_code, player_dice)
+        game::hold::Hold::new(player_code, player_dice)
     })
 }
 

@@ -2,8 +2,8 @@
 use std::{fmt, iter};
 use std::collections::HashMap;
 
-use crate::coordinate::{Cube, IntoCube, DIRECTION, PointDirection, Axial};
-use crate::errors::*;
+use super::coordinate::{Cube, IntoCube, DIRECTION, PointDirection, Axial};
+use super::errors::*;
 
 /// This struct is probably redundant. Why can't I just store the `T` at the coordinate
 /// location at `Cube` in the collection?
@@ -269,7 +269,7 @@ mod test {
     fn rect_grid_1x1() {
         let r_grid = Rectangular::generate(1, 1, 4);
 
-        let origin = Cube::new(0, 0, 0).unwrap();
+        let origin = Cube::construct(0, 0, 0).unwrap();
         let hexagon = r_grid.fetch(origin).unwrap();        
         assert!(origin == hexagon.grid_loc());
     }
@@ -278,11 +278,11 @@ mod test {
     fn rect_grid_1x2() {
         let r_grid = Rectangular::generate(2, 1, 4);
 
-        let origin = Cube::new(0, 0, 0).unwrap();
+        let origin = Cube::construct(0, 0, 0).unwrap();
         let hexagon = r_grid.fetch(origin).unwrap();        
         assert!(origin == hexagon.grid_loc());
 
-        let origin = Cube::new(1, -1, 0).unwrap();
+        let origin = Cube::construct(1, -1, 0).unwrap();
         let hexagon = r_grid.fetch(origin).unwrap();        
         assert!(origin == hexagon.grid_loc());
     }
@@ -291,11 +291,11 @@ mod test {
     fn rect_grid_1x4() {
         let r_grid = Rectangular::generate(4, 1, 4);
 
-        let origin = Cube::new(0, 0, 0).unwrap();
+        let origin = Cube::construct(0, 0, 0).unwrap();
         let hexagon = r_grid.fetch(origin).unwrap();
         assert!(origin == hexagon.grid_loc());
 
-        let last = Cube::new(3, -3, 0).unwrap();
+        let last = Cube::construct(3, -3, 0).unwrap();
         let hexagon = r_grid.fetch(last).unwrap();
         assert!(last == hexagon.grid_loc());
     }
@@ -304,19 +304,19 @@ mod test {
     fn rect_grid_2x2() {
         let r_grid = Rectangular::generate(2, 2, 4);
 
-        let origin = Cube::new(0, 0, 0).unwrap();
+        let origin = Cube::construct(0, 0, 0).unwrap();
         let hexagon = r_grid.fetch(origin).unwrap();
         assert!(origin == hexagon.grid_loc());
 
-        let origin = Cube::new(1, -1, 0).unwrap();
+        let origin = Cube::construct(1, -1, 0).unwrap();
         let hexagon = r_grid.fetch(origin).unwrap();
         assert!(origin == hexagon.grid_loc());
 
-        let origin = Cube::new(0, -1, 1).unwrap();
+        let origin = Cube::construct(0, -1, 1).unwrap();
         let hexagon = r_grid.fetch(origin).unwrap();
         assert!(origin == hexagon.grid_loc());
 
-        let origin = Cube::new(1, -2, 1).unwrap();
+        let origin = Cube::construct(1, -2, 1).unwrap();
         let hexagon = r_grid.fetch(origin).unwrap();
         assert!(origin == hexagon.grid_loc());
     }
@@ -325,19 +325,19 @@ mod test {
     fn rect_grid_3x3() {
         let r_grid = Rectangular::generate(3, 3, 4);
 
-        let origin = Cube::new(0, 0, 0).unwrap();
+        let origin = Cube::construct(0, 0, 0).unwrap();
         let hexagon = r_grid.fetch(origin).unwrap();
         assert!(origin == hexagon.grid_loc());
 
-        let origin = Cube::new(2, -2, 0).unwrap();
+        let origin = Cube::construct(2, -2, 0).unwrap();
         let hexagon = r_grid.fetch(origin).unwrap();
         assert!(origin == hexagon.grid_loc());
 
-        let origin = Cube::new(-1, -1, 2).unwrap();
+        let origin = Cube::construct(-1, -1, 2).unwrap();
         let hexagon = r_grid.fetch(origin).unwrap();
         assert!(origin == hexagon.grid_loc());
 
-        let origin = Cube::new(1, -3, 2).unwrap();
+        let origin = Cube::construct(1, -3, 2).unwrap();
         let hexagon = r_grid.fetch(origin).unwrap();
         assert!(origin == hexagon.grid_loc());
     }
@@ -346,19 +346,19 @@ mod test {
     fn rect_grid_4x4() {
         let r_grid = Rectangular::generate(4, 4, 4);
 
-        let origin = Cube::new(0, 0, 0).unwrap();
+        let origin = Cube::construct(0, 0, 0).unwrap();
         let hexagon = r_grid.fetch(origin).unwrap();
         assert!(origin == hexagon.grid_loc());
 
-        let last = Cube::new(3, -3, 0).unwrap();
+        let last = Cube::construct(3, -3, 0).unwrap();
         let hexagon = r_grid.fetch(last).unwrap();
         assert!(last == hexagon.grid_loc());
 
-        let origin = Cube::new(-1, -2, 3).unwrap();
+        let origin = Cube::construct(-1, -2, 3).unwrap();
         let hexagon = r_grid.fetch(origin).unwrap();
         assert!(origin == hexagon.grid_loc());
 
-        let origin = Cube::new(2, -5, 3).unwrap();
+        let origin = Cube::construct(2, -5, 3).unwrap();
         let hexagon = r_grid.fetch(origin).unwrap();
         assert!(origin == hexagon.grid_loc());
     }
@@ -388,16 +388,16 @@ mod test {
 
         let mut iter = r_grid.iter();
 
-        let origin = Cube::new(0, 0, 0).unwrap();
+        let origin = Cube::construct(0, 0, 0).unwrap();
         assert!(origin == iter.next().unwrap().grid_loc());
 
-        let origin = Cube::new(1, -1, 0).unwrap();
+        let origin = Cube::construct(1, -1, 0).unwrap();
         assert!(origin == iter.next().unwrap().grid_loc());
 
-        let origin = Cube::new(0, -1, 1).unwrap();
+        let origin = Cube::construct(0, -1, 1).unwrap();
         assert!(origin == iter.next().unwrap().grid_loc());
 
-        let origin = Cube::new(1, -2, 1).unwrap();
+        let origin = Cube::construct(1, -2, 1).unwrap();
         assert!(origin == iter.next().unwrap().grid_loc());
 
         assert!(iter.next().is_none());

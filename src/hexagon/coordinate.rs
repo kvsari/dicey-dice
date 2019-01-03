@@ -2,7 +2,7 @@
 use std::{convert, ops};
 use std::ops::Neg;
 
-use crate::errors::*;
+use super::errors::*;
 
 /// The different directions as `Cube` coordinate additions. This is for both flat and
 /// pointy orientations of the hexagonal grid.
