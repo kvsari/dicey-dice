@@ -1,10 +1,11 @@
 //! Contain the hexagonal grid using cube coordinates.
-use std::{fmt, iter};
+use std::{fmt, iter, mem};
 use std::collections::HashMap;
 
-use super::coordinate::{Cube, IntoCube, DIRECTION, PointDirection, Axial};
+use super::coordinate::{Cube, IntoCube, DIRECTION, PointDirection};
 use super::errors::*;
 
+/*
 /// This struct is probably redundant. Why can't I just store the `T` at the coordinate
 /// location at `Cube` in the collection?
 #[derive(Debug, Copy, Clone)]
@@ -58,6 +59,7 @@ impl<T> Hexagon<T> {
         self.data = new_data;
     }
 }
+*/
 
 /*
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -108,12 +110,12 @@ pub struct Rectangular<T> {
     columns: i32,
     rows: i32,
     coordinates: Vec<Vec<Cube>>, // Store coordinates in grid to save on regenerating them.
-    hexes: HashMap<Cube, Hexagon<T>>,
+    hexes: HashMap<Cube, T>,
 }
 
 impl<T: Copy + Clone> Rectangular<T> {
     pub fn generate(columns: u32, rows: u32, d: T) -> Rectangular<T> {        
-        let mut hexes: HashMap<Cube, Hexagon<T>> = HashMap::new();
+        let mut hexes: HashMap<Cube, T > = HashMap::new();
 
         let rows = rows as i32;
         let columns = columns as i32;
@@ -123,7 +125,7 @@ impl<T: Copy + Clone> Rectangular<T> {
         if rows > 0 && columns > 0 {
             let mut last_row = generate_new_row(columns);
             coordinates.push(last_row.clone());
-            hexes.extend(last_row.iter().map(|h| (*h, Hexagon::construct(h, d).unwrap())));
+            hexes.extend(last_row.iter().map(|h| (*h, d)));
             //println!("ROW 0: {:?}", &last_row);
             for row in 1..rows {
                 last_row = if row % 2 == 0 {
@@ -133,9 +135,7 @@ impl<T: Copy + Clone> Rectangular<T> {
                 };
                 //println!("ROW {}: {:?}", &row, &last_row);
                 coordinates.push(last_row.clone());
-                hexes.extend(
-                    last_row.iter().map(|h| (*h, Hexagon::construct(h, d).unwrap()))
-                );
+                hexes.extend(last_row.iter().map(|h| (*h, d)))
             }
         }
                 
@@ -144,7 +144,7 @@ impl<T: Copy + Clone> Rectangular<T> {
         }
     }    
 
-    pub fn fetch<C: IntoCube>(&self, location: C) -> Result<&Hexagon<T>, BadCoordinate> {
+    pub fn fetch<C: IntoCube>(&self, location: C) -> Result<&T, BadCoordinate> {
         let coordinate = location.cube()?;
         self.hexes
             .get(&coordinate)
@@ -163,7 +163,10 @@ impl<T: Copy + Clone> Rectangular<T> {
         clone
             .hexes
             .iter_mut()
-            .for_each(|(_, hexagon)| hexagon.mutate((f)(*hexagon.data())));
+            .for_each(|(_, data)| {
+                let new_data = (f)(*data);
+                mem::replace(data, new_data);
+            });
         
         clone
     }
@@ -187,7 +190,6 @@ impl<T: fmt::Display> fmt::Display for Rectangular<T> {
                             self.hexes
                                 .get(col)
                                 .expect("grid has non-existent coordinate.")
-                                .data()
                         )
                     });                
                 counter += 1;
@@ -211,7 +213,7 @@ pub struct Iter<'a, T> {
     columns: usize,
     rows: usize,
     coordinates: &'a [Vec<Cube>],
-    hexes: &'a HashMap<Cube, Hexagon<T>>,
+    hexes: &'a HashMap<Cube, T>,
 }
 
 impl<'a, T> Iter<'a, T> {
@@ -219,7 +221,7 @@ impl<'a, T> Iter<'a, T> {
         columns: usize,
         rows: usize,
         coordinates: &'a [Vec<Cube>],
-        hexes: &'a HashMap<Cube, Hexagon<T>>) -> Self {
+        hexes: &'a HashMap<Cube, T>) -> Self {
         Iter {
             column: 0,
             row: 0,
@@ -232,7 +234,7 @@ impl<'a, T> Iter<'a, T> {
 }
 
 impl<'a, T> iter::Iterator for Iter<'a, T> {
-    type Item = &'a Hexagon<T>;
+    type Item = (&'a Cube, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {        
         if self.column >= self.columns {
@@ -247,7 +249,9 @@ impl<'a, T> iter::Iterator for Iter<'a, T> {
         let coordinate = &self.coordinates[self.row][self.column];
         self.column += 1;
 
-        self.hexes.get(coordinate)
+        self.hexes
+            .get(coordinate)
+            .map(|h| (coordinate, h))
     }
 }
 
