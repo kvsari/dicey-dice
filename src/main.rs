@@ -6,7 +6,7 @@ use rand::prelude::*;
 
 use lib::{hexagon, game};
 
-/// TODO: Move this intoo a `game` module or something.
+/// TODO: Move this into a `game` module or something.
 fn generate_random_2x2_board_game() -> hexagon::grid::Rectangular<game::hold::Hold> {
     let mut rng = thread_rng();    
     let grid = hexagon::grid::Rectangular::generate(2, 2, game::hold::Hold::default());

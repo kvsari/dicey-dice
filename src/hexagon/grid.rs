@@ -6,68 +6,35 @@ use super::coordinate::{Cube, IntoCube, DIRECTION, PointDirection};
 use super::errors::*;
 
 /*
-/// This struct is probably redundant. Why can't I just store the `T` at the coordinate
-/// location at `Cube` in the collection?
-#[derive(Debug, Copy, Clone)]
-pub struct Hexagon<T> {
-    grid_loc: Cube,
-    data: T,    
-}
-
-impl<T> Hexagon<T> {
-    pub fn construct<C: IntoCube>(
-        location: C, data: T
-    ) -> Result<Self, FailsZeroConstraint> {
-        Ok(Hexagon {
-            grid_loc: location.cube()?,
-            data,
-        })
-    }
-
-    pub fn from_cube(cube: Cube, data: T) -> Self {
-        Hexagon {
-            grid_loc: cube,
-            data,
-        }
-    }
-
-    pub fn from_axial(axial: Axial, data: T) -> Self {
-        Hexagon {
-            grid_loc: axial.cube().unwrap(),
-            data,
-        }
-    }
-
-    pub fn grid_loc(&self) -> Cube {
-        self.grid_loc
-    }
-
-    pub fn data(&self) -> &T {
-        &self.data
-    }
-
-    pub fn update(&self, new_data: T) -> Self {
-        Hexagon {
-            grid_loc: self.grid_loc,
-            data: new_data
-        }
-    }
-
-    /// Internal mutation. Only to be used by `fork` operations. Will not edit the grid
-    /// location slot.
-    fn mutate(&mut self, new_data: T) {
-        self.data = new_data;
-    }
-}
-*/
-
-/*
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Orientation {
     Top,
     Left,
 }
  */
+
+/// References a specific hex in a hex grid. Access is guarded to prevent mutation.
+#[derive(Debug, Copy, Clone)]
+pub struct HexTile<'a, T> {
+    coordinate: &'a Cube,
+    data: &'a T,
+}
+
+impl<'a, T> HexTile<'a, T> {
+    fn new(coordinate: &'a Cube, data: &'a T) -> Self {
+        HexTile {
+            coordinate, data
+        }
+    }
+
+    pub fn coordinate(&self) -> &Cube {
+        self.coordinate
+    }
+
+    pub fn data(&self) -> &T {
+        self.data
+    }
+}
 
 fn generate_new_row(length: i32) -> Vec<Cube> {
     let first = Cube::construct(0, 0, 0).unwrap();
@@ -114,7 +81,13 @@ pub struct Rectangular<T> {
 }
 
 impl<T: Copy + Clone> Rectangular<T> {
-    pub fn generate(columns: u32, rows: u32, d: T) -> Rectangular<T> {        
+    pub fn generate(columns: u32, rows: u32, d: T) -> Rectangular<T> {
+        Rectangular::generate_with(columns, rows, |_| d)
+    }
+
+    pub fn generate_with<F: FnMut(&Cube) -> T>(
+        columns: u32, rows: u32, mut f: F
+    ) -> Rectangular<T> {
         let mut hexes: HashMap<Cube, T > = HashMap::new();
 
         let rows = rows as i32;
@@ -122,10 +95,18 @@ impl<T: Copy + Clone> Rectangular<T> {
 
         let mut coordinates: Vec<Vec<Cube>> = Vec::new();
 
+        // Little ugly here with the copy-n-paste extends. TODO: Refactor me.
         if rows > 0 && columns > 0 {
             let mut last_row = generate_new_row(columns);
             coordinates.push(last_row.clone());
-            hexes.extend(last_row.iter().map(|h| (*h, d)));
+            hexes.extend(
+                last_row
+                    .iter()
+                    .map(|h| {
+                        let d = (f)(h);
+                        (*h, d)
+                    })
+            );
             //println!("ROW 0: {:?}", &last_row);
             for row in 1..rows {
                 last_row = if row % 2 == 0 {
@@ -135,14 +116,21 @@ impl<T: Copy + Clone> Rectangular<T> {
                 };
                 //println!("ROW {}: {:?}", &row, &last_row);
                 coordinates.push(last_row.clone());
-                hexes.extend(last_row.iter().map(|h| (*h, d)))
+                hexes.extend(
+                    last_row
+                        .iter()
+                        .map(|h| {
+                            let d = (f)(h);
+                            (*h, d)
+                        })
+                );
             }
         }
                 
         Rectangular {
             columns, rows, coordinates, hexes,
         }
-    }    
+    }
 
     pub fn fetch<C: IntoCube>(&self, location: C) -> Result<&T, BadCoordinate> {
         let coordinate = location.cube()?;
@@ -221,7 +209,8 @@ impl<'a, T> Iter<'a, T> {
         columns: usize,
         rows: usize,
         coordinates: &'a [Vec<Cube>],
-        hexes: &'a HashMap<Cube, T>) -> Self {
+        hexes: &'a HashMap<Cube, T>
+    ) -> Self {
         Iter {
             column: 0,
             row: 0,
@@ -234,7 +223,7 @@ impl<'a, T> Iter<'a, T> {
 }
 
 impl<'a, T> iter::Iterator for Iter<'a, T> {
-    type Item = (&'a Cube, &'a T);
+    type Item = HexTile<'a, T>;
 
     fn next(&mut self) -> Option<Self::Item> {        
         if self.column >= self.columns {
@@ -251,7 +240,7 @@ impl<'a, T> iter::Iterator for Iter<'a, T> {
 
         self.hexes
             .get(coordinate)
-            .map(|h| (coordinate, h))
+            .map(|h| HexTile::new(coordinate, h))
     }
 }
 
@@ -269,102 +258,90 @@ mod test {
         assert!(row[3] == (3, 0).into());
     }
 
+    fn increment_generator(cols: u32, rows: u32) -> Rectangular<u32> {
+        let mut increment = 0;
+        Rectangular::generate_with(cols, rows, |_| { increment += 1; increment })
+    }
+
     #[test]
     fn rect_grid_1x1() {
-        let r_grid = Rectangular::generate(1, 1, 4);
+        let r_grid = increment_generator(1, 1);
 
         let origin = Cube::construct(0, 0, 0).unwrap();
-        let hexagon = r_grid.fetch(origin).unwrap();        
-        assert!(origin == hexagon.grid_loc());
+        assert!(*r_grid.fetch(origin).unwrap() == 1);
     }
 
     #[test]
     fn rect_grid_1x2() {
-        let r_grid = Rectangular::generate(2, 1, 4);
+        let r_grid = increment_generator(2, 1);
 
         let origin = Cube::construct(0, 0, 0).unwrap();
-        let hexagon = r_grid.fetch(origin).unwrap();        
-        assert!(origin == hexagon.grid_loc());
+        assert!(*r_grid.fetch(origin).unwrap() == 1);
 
         let origin = Cube::construct(1, -1, 0).unwrap();
-        let hexagon = r_grid.fetch(origin).unwrap();        
-        assert!(origin == hexagon.grid_loc());
+        assert!(*r_grid.fetch(origin).unwrap() == 2);
     }
 
     #[test]
     fn rect_grid_1x4() {
-        let r_grid = Rectangular::generate(4, 1, 4);
+        let r_grid = increment_generator(4, 1);
 
         let origin = Cube::construct(0, 0, 0).unwrap();
-        let hexagon = r_grid.fetch(origin).unwrap();
-        assert!(origin == hexagon.grid_loc());
+        assert!(*r_grid.fetch(origin).unwrap() == 1);
 
         let last = Cube::construct(3, -3, 0).unwrap();
-        let hexagon = r_grid.fetch(last).unwrap();
-        assert!(last == hexagon.grid_loc());
+        assert!(*r_grid.fetch(last).unwrap() == 4);
     }
 
     #[test]
     fn rect_grid_2x2() {
-        let r_grid = Rectangular::generate(2, 2, 4);
+        let r_grid = increment_generator(2, 2);
 
         let origin = Cube::construct(0, 0, 0).unwrap();
-        let hexagon = r_grid.fetch(origin).unwrap();
-        assert!(origin == hexagon.grid_loc());
+        assert!(*r_grid.fetch(origin).unwrap() == 1);
 
         let origin = Cube::construct(1, -1, 0).unwrap();
-        let hexagon = r_grid.fetch(origin).unwrap();
-        assert!(origin == hexagon.grid_loc());
+        assert!(*r_grid.fetch(origin).unwrap() == 2);
 
         let origin = Cube::construct(0, -1, 1).unwrap();
-        let hexagon = r_grid.fetch(origin).unwrap();
-        assert!(origin == hexagon.grid_loc());
+        assert!(*r_grid.fetch(origin).unwrap() == 3);
 
         let origin = Cube::construct(1, -2, 1).unwrap();
-        let hexagon = r_grid.fetch(origin).unwrap();
-        assert!(origin == hexagon.grid_loc());
+        assert!(*r_grid.fetch(origin).unwrap() == 4);
     }
 
     #[test]
     fn rect_grid_3x3() {
-        let r_grid = Rectangular::generate(3, 3, 4);
+        let r_grid = increment_generator(3, 3);
 
         let origin = Cube::construct(0, 0, 0).unwrap();
-        let hexagon = r_grid.fetch(origin).unwrap();
-        assert!(origin == hexagon.grid_loc());
+        assert!(*r_grid.fetch(origin).unwrap() == 1);
 
         let origin = Cube::construct(2, -2, 0).unwrap();
-        let hexagon = r_grid.fetch(origin).unwrap();
-        assert!(origin == hexagon.grid_loc());
+        assert!(*r_grid.fetch(origin).unwrap() == 3);
 
         let origin = Cube::construct(-1, -1, 2).unwrap();
-        let hexagon = r_grid.fetch(origin).unwrap();
-        assert!(origin == hexagon.grid_loc());
+        assert!(*r_grid.fetch(origin).unwrap() == 7);
 
         let origin = Cube::construct(1, -3, 2).unwrap();
-        let hexagon = r_grid.fetch(origin).unwrap();
-        assert!(origin == hexagon.grid_loc());
+        assert!(*r_grid.fetch(origin).unwrap() == 9);
     }
 
     #[test]
     fn rect_grid_4x4() {
-        let r_grid = Rectangular::generate(4, 4, 4);
+        let r_grid = increment_generator(4, 4);
 
         let origin = Cube::construct(0, 0, 0).unwrap();
-        let hexagon = r_grid.fetch(origin).unwrap();
-        assert!(origin == hexagon.grid_loc());
+        assert!(*r_grid.fetch(origin).unwrap() == 1);
 
-        let last = Cube::construct(3, -3, 0).unwrap();
-        let hexagon = r_grid.fetch(last).unwrap();
-        assert!(last == hexagon.grid_loc());
+        let origin = Cube::construct(3, -3, 0).unwrap();
+        assert!(*r_grid.fetch(origin).unwrap() == 4);
 
         let origin = Cube::construct(-1, -2, 3).unwrap();
-        let hexagon = r_grid.fetch(origin).unwrap();
-        assert!(origin == hexagon.grid_loc());
+        assert!(*r_grid.fetch(origin).unwrap() == 13);
 
         let origin = Cube::construct(2, -5, 3).unwrap();
-        let hexagon = r_grid.fetch(origin).unwrap();
-        assert!(origin == hexagon.grid_loc());
+        assert!(*r_grid.fetch(origin).unwrap() == 16);
     }
 
     #[test]
@@ -388,21 +365,21 @@ mod test {
 
     #[test]
     fn grid_2x2_iterator() {
-        let r_grid = Rectangular::generate(2, 2, 4);
+        let r_grid = increment_generator(2, 2);
 
         let mut iter = r_grid.iter();
 
         let origin = Cube::construct(0, 0, 0).unwrap();
-        assert!(origin == iter.next().unwrap().grid_loc());
+        assert!(&origin == iter.next().unwrap().coordinate());
 
         let origin = Cube::construct(1, -1, 0).unwrap();
-        assert!(origin == iter.next().unwrap().grid_loc());
+        assert!(&origin == iter.next().unwrap().coordinate());
 
         let origin = Cube::construct(0, -1, 1).unwrap();
-        assert!(origin == iter.next().unwrap().grid_loc());
+        assert!(&origin == iter.next().unwrap().coordinate());
 
         let origin = Cube::construct(1, -2, 1).unwrap();
-        assert!(origin == iter.next().unwrap().grid_loc());
+        assert!(&origin == iter.next().unwrap().coordinate());
 
         assert!(iter.next().is_none());
     }
@@ -415,8 +392,8 @@ mod test {
 
         f_grid
             .iter()
-            .for_each(|h| {
-                assert!(*h.data() == 8);
+            .for_each(|hex| {
+                assert!(*hex.data() == 8);
             });
     }
 }
