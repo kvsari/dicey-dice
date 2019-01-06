@@ -4,7 +4,7 @@ use std::{default, fmt};
 use derive_getters::Getters;
 
 /// A territorial hold on a particular tile.
-#[derive(Debug, Copy, Clone, Getters)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Getters)]
 pub struct Hold {
     owner: u32,
 
