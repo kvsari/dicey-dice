@@ -29,7 +29,7 @@ pub struct  State {
     /// Valid moves from this `State`. They lead on to further `State`s. A vector of zero
     /// `Move`s indicates that the game has ended and this is the final `State` in this
     /// particular sequence of decisions.
-    moves: Vec<(Move, usize)>,
+    moves: Vec<(Move, StateIndex)>,
 }
 
 /// A turn in the game.

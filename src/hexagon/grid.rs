@@ -144,15 +144,16 @@ impl<T: Copy + Clone> Rectangular<T> {
     }
 
     /// Will clone a copy of the `Rectangular<T>` grid and iterate through all hexagons
-    /// applying the sent function/closure.
-    pub fn fork<F: FnMut(T) -> T>(&self, mut f: F) -> Self {
+    /// applying the sent function/closure. Function takes a reference to the coordinate
+    /// that the 
+    pub fn fork_with<F: FnMut(&Cube, T) -> T>(&self, mut f: F) -> Self {
         let mut clone = self.clone();
 
         clone
             .hexes
             .iter_mut()
-            .for_each(|(_, data)| {
-                let new_data = (f)(*data);
+            .for_each(|(cube, data)| {
+                let new_data = (f)(cube, *data);
                 mem::replace(data, new_data);
             });
         

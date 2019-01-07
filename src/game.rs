@@ -14,7 +14,7 @@ pub fn generate_random_2x2_board_game() -> hexagon::grid::Rectangular<hold::Hold
     let mut rng = thread_rng();    
     let grid = hexagon::grid::Rectangular::generate(2, 2, hold::Hold::default());
     
-    grid.fork(move |_| {
+    grid.fork_with(move |_, _| {
         let player_code = rng.gen_range(1, 3);
         let player_dice = rng.gen_range(1, 6);
         hold::Hold::new(player_code, player_dice)
