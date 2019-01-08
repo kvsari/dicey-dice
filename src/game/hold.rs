@@ -6,6 +6,7 @@ use derive_getters::Getters;
 /// A territorial hold on a particular tile.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Getters)]
 pub struct Hold {
+    /// AKA the player.
     owner: u32,
 
     /// We're assuming D6's here.

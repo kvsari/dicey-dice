@@ -18,7 +18,7 @@ pub enum Move {
 /// and the legal moves available (or not).
 #[derive(Debug, Clone)]
 pub struct  State {
-    id: u32,
+    //id: u32,
    
     /// The player which is permitted to move in this `State`.
     player: u32,
@@ -63,6 +63,6 @@ pub struct Tree {
     turn_state: u32,
     */
 
-    /// The players in the game. They are traversed in the order stored.
-    players: Vec<u32>,
+    /// The players in the game.
+    players: u32,
 }

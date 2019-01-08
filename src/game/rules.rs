@@ -1,25 +1,64 @@
 //! Game rules. Controls what are valid moves.
 
-use crate::hexagon::{coordinate, grid};
-use super::{tree, hold::Hold};
+use crate::hexagon::{
+    coordinate,
+    grid,
+};
+
+use super::{
+    tree::Move,
+    hold::Hold
+};
 
 type Grid = grid::Rectangular<Hold>;
 
-fn all_legal_moves_from(
-    grid: &Grid, curr_player: u32, next_player: u32
-) -> Vec<(tree::Move, usize)> {
-    Vec::new()
+fn all_legal_moves_from(grid: &Grid, player: u32) -> Vec<Move> {
+    grid.iter()
+        .fold(vec![Move::Pass], |mut moves, hex_tile| {
+            let coordinate = *hex_tile.coordinate();
+            let hold = *hex_tile.data();
+            moves.extend(
+                coordinate
+                    .neighbours()
+                    .iter()
+                    .filter_map(|neighbour| {
+                        grid.fetch(neighbour)
+                            .ok() // Ignore the misses
+                            .and_then(|d| {
+                                if d.owner() != &player {
+                                    // We have an enemy tile. We count dice.
+                                    if d.dice() < hold.dice() {
+                                        // Player has more dice! This is an attacking move.
+                                        Some(Move::Attack(coordinate, *neighbour))
+                                    } else {
+                                        // Player doesn't have enough dice. Can't attack.
+                                        None
+                                    }
+                                } else {
+                                    // Our tile is owned by the player. No move here.
+                                    None
+                                }
+                            })
+                    })
+            );
+
+            moves
+        })
+}
+
+/// Generates a new grid that bears the consequences of the supplied movement.
+fn grid_from_move(grid: &Grid, movement: Move) -> Grid {
 }
 
 /// Returns a new rectangular grid representing the consequences of the move applied to the
 /// sent grid by the specified player. Doesn't check if the move is legal or not.
-fn carry_out_grid_move(grid: &Grid, decision: tree::Move) -> Grid {
+fn carry_out_move(grid: &Grid, decision: Move) -> Grid {
     // TODO: Finish me. There are two sub-functions to write here. One that handles
     //       passing moves and the other which handles attacking moves. Do the passing
     //       moves first as that's the easiest as its a simple clone of the grid.
     match decision {
-        tree::Move::Pass => grid.to_owned(),
-        tree::Move::Attack(from, to) =>  attacking_move(grid, from, to),
+        Move::Pass => grid.to_owned(),
+        Move::Attack(from, to) =>  attacking_move(grid, from, to),
     }
 }
 

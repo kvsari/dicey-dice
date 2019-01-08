@@ -187,6 +187,19 @@ impl Cube {
     pub fn z(&self) -> i32 {
         self.z
     }
+
+    /// Return the coordinates for the six neighbours. Outputted clockwise.
+    /// Whether they are valid on a grid is another question not answered here.
+    pub fn neighbours(&self) -> [Cube; 6] {
+        [
+            *self + DIRECTION[PointDirection::UpRight as usize],
+            *self + DIRECTION[PointDirection::Right as usize],
+            *self + DIRECTION[PointDirection::DownRight as usize],
+            *self + DIRECTION[PointDirection::DownLeft as usize],
+            *self + DIRECTION[PointDirection::Left as usize],
+            *self + DIRECTION[PointDirection::UpLeft as usize],
+        ]
+    }
 }
 
 impl IntoAxial for Cube {

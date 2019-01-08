@@ -189,12 +189,6 @@ impl<T: fmt::Display> fmt::Display for Rectangular<T> {
     }
 }
 
-/*
-impl<T> From<Vec<Hexagon<T>>> for Rectangular<T> {
-    
-}
-*/
-
 /// In order iterator for the grid.
 pub struct Iter<'a, T> {
     column: usize,
