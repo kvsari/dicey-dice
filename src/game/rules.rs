@@ -10,7 +10,7 @@ use super::{
     hold::Hold
 };
 
-type Grid = grid::Rectangular<Hold>;
+use super::Grid;
 
 fn all_legal_moves_from(grid: &Grid, player: u32) -> Vec<Move> {
     grid.iter()
@@ -46,19 +46,12 @@ fn all_legal_moves_from(grid: &Grid, player: u32) -> Vec<Move> {
         })
 }
 
-/// Generates a new grid that bears the consequences of the supplied movement.
+/// Generates a new grid that bears the consequences of the supplied movement. Doesn't
+/// check if the move is legal.
 fn grid_from_move(grid: &Grid, movement: Move) -> Grid {
-}
-
-/// Returns a new rectangular grid representing the consequences of the move applied to the
-/// sent grid by the specified player. Doesn't check if the move is legal or not.
-fn carry_out_move(grid: &Grid, decision: Move) -> Grid {
-    // TODO: Finish me. There are two sub-functions to write here. One that handles
-    //       passing moves and the other which handles attacking moves. Do the passing
-    //       moves first as that's the easiest as its a simple clone of the grid.
-    match decision {
+    match movement {
         Move::Pass => grid.to_owned(),
-        Move::Attack(from, to) =>  attacking_move(grid, from, to),
+        Move::Attack(from, to) => attacking_move(grid, from, to),
     }
 }
 

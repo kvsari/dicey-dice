@@ -7,6 +7,8 @@ pub mod tree;
 pub mod hold;
 mod rules;
 
+type Grid = hexagon::grid::Rectangular<hold::Hold>;
+
 /// Temporary function. Remove this with a properly wrapped up game tree. An intermediate
 /// step is to return a game turn that will wrap the `hold::Hold` allowing that sub-module
 /// to be made private.

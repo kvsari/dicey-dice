@@ -1,6 +1,7 @@
 //! Contain the hexagonal grid using cube coordinates.
 use std::{fmt, iter, mem};
 use std::collections::HashMap;
+use std::hash::Hash;
 
 use super::coordinate::{Cube, IntoCube, DIRECTION, PointDirection};
 use super::errors::*;
@@ -72,7 +73,7 @@ fn row_down_left_from_row(row: &[Cube]) -> Vec<Cube> {
     new_row
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Rectangular<T> {
     columns: i32,
     rows: i32,
@@ -80,7 +81,7 @@ pub struct Rectangular<T> {
     hexes: HashMap<Cube, T>,
 }
 
-impl<T: Copy + Clone> Rectangular<T> {
+impl<T: Copy + Clone + Hash + PartialEq + Eq> Rectangular<T> {
     pub fn generate(columns: u32, rows: u32, d: T) -> Rectangular<T> {
         Rectangular::generate_with(columns, rows, |_| d)
     }
