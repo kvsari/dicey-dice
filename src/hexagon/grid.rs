@@ -73,12 +73,12 @@ fn row_down_left_from_row(row: &[Cube]) -> Vec<Cube> {
     new_row
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Rectangular<T> {
     columns: i32,
     rows: i32,
-    coordinates: Vec<Vec<Cube>>, // Store coordinates in grid to save on regenerating them.
-    hexes: HashMap<Cube, T>,
+    hexes: Vec<(Cube, T)>,
+    index: HashMap<Cube, usize>,
 }
 
 impl<T: Copy + Clone + Hash + PartialEq + Eq> Rectangular<T> {
@@ -89,59 +89,60 @@ impl<T: Copy + Clone + Hash + PartialEq + Eq> Rectangular<T> {
     pub fn generate_with<F: FnMut(&Cube) -> T>(
         columns: u32, rows: u32, mut f: F
     ) -> Rectangular<T> {
-        let mut hexes: HashMap<Cube, T > = HashMap::new();
-
         let rows = rows as i32;
         let columns = columns as i32;
 
-        let mut coordinates: Vec<Vec<Cube>> = Vec::new();
-
-        // Little ugly here with the copy-n-paste extends. TODO: Refactor me.
-        if rows > 0 && columns > 0 {
-            let mut last_row = generate_new_row(columns);
-            coordinates.push(last_row.clone());
-            hexes.extend(
-                last_row
-                    .iter()
-                    .map(|h| {
-                        let d = (f)(h);
-                        (*h, d)
-                    })
-            );
-            //println!("ROW 0: {:?}", &last_row);
-            for row in 1..rows {
-                last_row = if row % 2 == 0 {
-                    row_down_left_from_row(&last_row)
-                } else {
-                    row_down_right_from_row(&last_row)
-                };
-                //println!("ROW {}: {:?}", &row, &last_row);
-                coordinates.push(last_row.clone());
-                hexes.extend(
-                    last_row
-                        .iter()
-                        .map(|h| {
-                            let d = (f)(h);
-                            (*h, d)
-                        })
-                );
-            }
+        if columns == 0 || rows == 0 {
+            return Rectangular {
+                columns,
+                rows,
+                hexes: Vec::new(),
+                index: HashMap::new(),
+            };
         }
+
+        let mut coordinates: Vec<Cube> = Vec::new();
+        let mut last_row = generate_new_row(columns);
+        coordinates.extend(last_row.clone().into_iter());
+        for row in 1..rows {
+            last_row = if row % 2 == 0 {
+                row_down_left_from_row(&last_row)
+            } else {
+                row_down_right_from_row(&last_row)
+            };
+            coordinates.extend(last_row.clone().into_iter());
+        }
+
+        let hexes: Vec<(Cube, T)> = coordinates
+            .into_iter()
+            .map(|c| (c, (f)(&c)))
+            .collect();
+
+        let index = hexes
+            .iter()
+            .enumerate()
+            .fold(HashMap::new(), |mut map, (i, (c, _))| {
+                map.insert(*c, i);
+                map
+            });
                 
         Rectangular {
-            columns, rows, coordinates, hexes,
+            columns, rows, hexes, index
         }
     }
 
     pub fn fetch<C: IntoCube>(&self, location: C) -> Result<&T, BadCoordinate> {
         let coordinate = location.cube()?;
-        self.hexes
+        self.index
             .get(&coordinate)
             .ok_or_else(|| NoHexAtCoordinate::from(coordinate).into())
+            .and_then(|i| Ok(&self.hexes[*i].1))
     }
 
-    pub fn iter(&self) -> Iter<T> {
-        Iter::new(self.columns as usize, self.rows as usize, &self.coordinates, &self.hexes)
+    pub fn iter(&self) -> impl Iterator<Item = HexTile<T>> {
+        self.hexes
+            .iter()
+            .map(|(c, d)| HexTile::new(c, d))
     }
 
     /// Will clone a copy of the `Rectangular<T>` grid and iterate through all hexagons
@@ -150,8 +151,7 @@ impl<T: Copy + Clone + Hash + PartialEq + Eq> Rectangular<T> {
     pub fn fork_with<F: FnMut(&Cube, T) -> T>(&self, mut f: F) -> Self {
         let mut clone = self.clone();
 
-        clone
-            .hexes
+        clone.hexes
             .iter_mut()
             .for_each(|(cube, data)| {
                 let new_data = (f)(cube, *data);
@@ -166,77 +166,33 @@ impl<T: Copy + Clone + Hash + PartialEq + Eq> Rectangular<T> {
 /// sophisticated display.
 impl<T: fmt::Display> fmt::Display for Rectangular<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut counter = 0;
-        let output = self.coordinates
+        let output = self.hexes
             .iter()
-            .fold(String::new(), |output, row| {
-                let padding = if counter % 2 == 0 { "" } else { "  " };
-                let text = row
-                    .iter()
-                    .fold(String::new(), |text, col| {
-                        format!(
-                            "{}{} ",
-                            &text,
-                            self.hexes
-                                .get(col)
-                                .expect("grid has non-existent coordinate.")
-                        )
-                    });                
-                counter += 1;
-                format!("{}{}{}\n", &output, padding, &text)
+            .fold((String::new(), 0, 0), |(output, col, row), (_cube, data)| {
+                let mut output = format!("{}{} ", &output, data);
+                let col = col + 1;
+
+                // Check if we reach the end of the row
+                let (col, row) = if col >= self.columns {
+                    let row = row + 1;
+                    let remainder = row % 2;
+                    if remainder == 0 {
+                        output = format!("{}\n", &output);
+                    } else if remainder != 0 && row >= self.rows {
+                        output = format!("{}\n", &output);
+                    } else {
+                        output = format!("{}\n  ", &output);
+                    }
+                    
+                    (0, row)
+                } else {
+                    (col, row)
+                };
+                
+                (output, col, row)
             });
 
-        write!(f, "{}", &output)
-    }
-}
-
-/// In order iterator for the grid.
-pub struct Iter<'a, T> {
-    column: usize,
-    row: usize,
-    columns: usize,
-    rows: usize,
-    coordinates: &'a [Vec<Cube>],
-    hexes: &'a HashMap<Cube, T>,
-}
-
-impl<'a, T> Iter<'a, T> {
-    fn new(
-        columns: usize,
-        rows: usize,
-        coordinates: &'a [Vec<Cube>],
-        hexes: &'a HashMap<Cube, T>
-    ) -> Self {
-        Iter {
-            column: 0,
-            row: 0,
-            columns,
-            rows,
-            coordinates,
-            hexes,
-        }
-    }
-}
-
-impl<'a, T> iter::Iterator for Iter<'a, T> {
-    type Item = HexTile<'a, T>;
-
-    fn next(&mut self) -> Option<Self::Item> {        
-        if self.column >= self.columns {
-            self.row += 1;
-            self.column = 0;
-        }
-
-        if self.row >= self.rows {
-            return None;
-        }
-
-        let coordinate = &self.coordinates[self.row][self.column];
-        self.column += 1;
-
-        self.hexes
-            .get(coordinate)
-            .map(|h| HexTile::new(coordinate, h))
+        write!(f, "{}", &output.0)
     }
 }
 
@@ -384,7 +340,7 @@ mod test {
     fn fork_2x2_grid() {
         let r_grid = Rectangular::generate(2, 2, 4);
 
-        let f_grid = r_grid.fork(|h| h * 2);
+        let f_grid = r_grid.fork_with(|_, h| h * 2);
 
         f_grid
             .iter()
