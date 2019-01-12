@@ -8,7 +8,7 @@ type FromHex = coordinate::Cube;
 type ToHex = coordinate::Cube;
 type StateIndex = usize;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct BoardState {
     player: u32,
     grid: Grid,
@@ -46,7 +46,7 @@ pub struct Traversal {
 pub struct Tree {
     start: BoardState,
 
-    //traversal: Vec<BoardState>,
+    traversal: Vec<BoardState>,
 
-    //states: HashMap<BoardState, Vec<Next>>,
+    states: HashMap<BoardState, Vec<Next>>,
 }

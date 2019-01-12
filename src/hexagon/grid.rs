@@ -1,7 +1,7 @@
 //! Contain the hexagonal grid using cube coordinates.
-use std::{fmt, iter, mem};
+use std::{fmt, mem, hash};
 use std::collections::HashMap;
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 
 use super::coordinate::{Cube, IntoCube, DIRECTION, PointDirection};
 use super::errors::*;
@@ -73,7 +73,7 @@ fn row_down_left_from_row(row: &[Cube]) -> Vec<Cube> {
     new_row
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Rectangular<T> {
     columns: i32,
     rows: i32,
@@ -176,9 +176,7 @@ impl<T: fmt::Display> fmt::Display for Rectangular<T> {
                 let (col, row) = if col >= self.columns {
                     let row = row + 1;
                     let remainder = row % 2;
-                    if remainder == 0 {
-                        output = format!("{}\n", &output);
-                    } else if remainder != 0 && row >= self.rows {
+                    if remainder == 0 || (remainder != 0 && row >= self.rows) {
                         output = format!("{}\n", &output);
                     } else {
                         output = format!("{}\n  ", &output);
@@ -193,6 +191,14 @@ impl<T: fmt::Display> fmt::Display for Rectangular<T> {
             });
 
         write!(f, "{}", &output.0)
+    }
+}
+
+impl<T: Copy + Clone + Hash + PartialEq + Eq> Hash for Rectangular<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.columns.hash(state);
+        self.rows.hash(state);
+        self.hexes.hash(state);
     }
 }
 
