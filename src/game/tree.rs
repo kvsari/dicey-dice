@@ -50,5 +50,3 @@ pub struct Tree {
     states: HashMap<BoardState, Vec<Next>>,
 }
 
-impl Tree {
-    

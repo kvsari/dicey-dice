@@ -12,7 +12,7 @@ use super::{
 
 use super::Grid;
 
-fn all_legal_moves_from(grid: &Grid, player: u32) -> Vec<Move> {
+fn all_legal_moves_from(grid: &Grid, player: u8) -> Vec<Move> {
     grid.iter()
         .fold(vec![Move::Pass], |mut moves, hex_tile| {
             let coordinate = *hex_tile.coordinate();

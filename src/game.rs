@@ -3,6 +3,7 @@ use rand::prelude::*;
 
 use crate::hexagon;
 
+pub mod player;
 pub mod tree;
 pub mod hold;
 mod rules;
