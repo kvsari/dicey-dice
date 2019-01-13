@@ -10,7 +10,7 @@ type StateIndex = usize;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct BoardState {
-    player: u32,
+    player: u8,
     grid: Grid,
 }
 
@@ -44,9 +44,11 @@ pub struct Traversal {
 /// The game tree. Contains all moves possible from the starting state.
 #[derive(Debug, Clone)]
 pub struct Tree {
+    players: u8,
     start: BoardState,
-
     traversal: Vec<BoardState>,
-
     states: HashMap<BoardState, Vec<Next>>,
 }
+
+impl Tree {
+    

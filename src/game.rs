@@ -24,14 +24,14 @@ pub fn generate_random_2x2_board_game() -> hexagon::grid::Rectangular<hold::Hold
 }
 
 fn generate_random_rectangular_board(
-    columns: u32, rows: u32, players: u32
+    columns: u32, rows: u32, players: u8
 ) -> hexagon::grid::Rectangular<hold::Hold> {
     let mut rng = thread_rng();
     hexagon::grid::Rectangular::generate_with(
         columns,
         rows,
         |_cube| {
-            let player_code = rng.gen_range(1, players);
+            let player_code = rng.gen_range(1, players + 1);
             let player_dice = rng.gen_range(1, 6);
             hold::Hold::new(player_code, player_dice)
         },

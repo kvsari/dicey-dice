@@ -7,14 +7,14 @@ use derive_getters::Getters;
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Getters)]
 pub struct Hold {
     /// AKA the player.
-    owner: u32,
+    owner: u8,
 
     /// We're assuming D6's here.
-    dice: u32,
+    dice: u8,
 }
 
 impl Hold {
-    pub fn new(owner: u32, dice: u32) -> Hold {
+    pub fn new(owner: u8, dice: u8) -> Hold {
         Hold {
             owner, dice
         }
