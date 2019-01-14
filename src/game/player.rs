@@ -1,13 +1,15 @@
 //! Player details handling. To simplify other code from having to calculate who the
 //! the next player is etc.
-use std::mem;
+use std::{fmt, mem};
 
 use derive_getters::Getters;
+use rand::Rng;
+use rand::distributions::Distribution;
 
 const MAX_PLAYERS: usize = 8;
 
 /// Contains the current player.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Getters)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Getters)]
 pub struct Player {
     number: usize,
     display: char,
@@ -31,6 +33,12 @@ impl Default for Player {
     }
 }
 
+impl fmt::Display for Player {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.display)
+    }
+}
+
 /// Player management rolled into one struct. Keeps track of the current player and
 /// emits the next player. There is an upper limit of `MAX_PLAYERS` players.
 #[derive(Debug, Copy, Clone)]
@@ -41,7 +49,7 @@ pub struct Players {
 }
 
 impl Players {
-    /// If `players` is larger then `MAX_PLAYERS`, will truncate to `MAX_PLAYERS`. If
+    /// If `players` is larger than `MAX_PLAYERS`, will truncate to `MAX_PLAYERS`. If
     /// `players` is less than 2, will use a minimum of 2.
     pub fn new(players: usize) -> Self {
         let count = if players > MAX_PLAYERS {
@@ -69,48 +77,22 @@ impl Players {
             count, current, players
         }
     }
-}
- 
-//impl Players {
-//
-//}
 
-/*
-pub struct Builder {
-    players: Vec<char>,
-}
-
-impl Builder {
-    pub fn new() -> Builder {
-        Builder {
-            players: Vec::new(),
-        }
+    pub fn current(&self) -> Player {
+        self.players[self.current]
     }
 
-    pub fn add_player(&mut self, character: char) -> 
-
-    pub fn build(&self) -> Result<Players, &'static str> {
-        if self.players.len() < 2 {
-            return Err("Need at least two players.");
+    pub fn next(&mut self) -> Player {
+        self.current += 1;
+        if self.current >= self.count {
+            self.current = 0;
         }
-
-        if self.players.len() > MAX_PLAYERS {
-            return Err("Too many players.");
-        }
-
-        let mut players = [Player::default(); MAX_PLAYERS];
-        self.players
-            .iter()
-            .enumerate()
-            .for_each(|(count, player)| {
-                players[count] = Player::new(count, *player);
-            });
-
-        Ok(Players {
-            count: self.players.len(),
-            current: 0,
-            players,
-        })
+        self.current()
     }
 }
-*/
+
+impl Distribution<Player> for Players {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Player {
+        self.players[rng.gen_range(0, self.count)]
+    }
+}

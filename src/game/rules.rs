@@ -7,12 +7,13 @@ use crate::hexagon::{
 
 use super::{
     tree::Move,
-    hold::Hold
+    hold::Hold,
+    player::Player,
 };
 
 use super::Grid;
 
-fn all_legal_moves_from(grid: &Grid, player: u8) -> Vec<Move> {
+fn all_legal_moves_from(grid: &Grid, player: Player) -> Vec<Move> {
     grid.iter()
         .fold(vec![Move::Pass], |mut moves, hex_tile| {
             let coordinate = *hex_tile.coordinate();

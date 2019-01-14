@@ -3,18 +3,20 @@ use std::{default, fmt};
 
 use derive_getters::Getters;
 
+use super::player::Player;
+
 /// A territorial hold on a particular tile.
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Getters)]
 pub struct Hold {
     /// AKA the player.
-    owner: u8,
+    owner: Player,
 
     /// We're assuming D6's here.
     dice: u8,
 }
 
 impl Hold {
-    pub fn new(owner: u8, dice: u8) -> Hold {
+    pub fn new(owner: Player, dice: u8) -> Hold {
         Hold {
             owner, dice
         }
@@ -29,6 +31,6 @@ impl fmt::Display for Hold {
 
 impl default::Default for Hold {
     fn default() -> Self {
-        Hold::new(0, 0)
+        Hold::new(Player::default(), 0)
     }
 }
