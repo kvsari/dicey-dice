@@ -1,6 +1,8 @@
 //! The tree containing all the legal moves in a game.
 use std::collections::HashMap;
 
+use derive_getters::Getters;
+
 use crate::hexagon::{coordinate, grid};
 use super::{
     Grid,
@@ -12,16 +14,22 @@ type FromHex = coordinate::Cube;
 type ToHex = coordinate::Cube;
 type StateIndex = usize;
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Getters)]
 pub struct BoardState {
     player: Player,
     grid: Grid,
 }
 
 impl BoardState {
-    fn new(player: Player, grid: Grid) -> Self {
+    pub fn new(player: Player, grid: Grid) -> Self {
         BoardState { player, grid }
     }
+
+    /*
+    /// Pass in the winning function
+    fn winning_with<F: Fn(&Grid, &Player) -> bool>(&self, f: F) -> bool {
+    }
+    */
 }
 
 /// A legal move from one `BoardState` into another.
@@ -33,16 +41,23 @@ pub enum Move {
 
 /// What follows from a `Move`.
 #[derive(Debug, Clone)]
-pub enum Conseqence {
+pub enum Consequence {
     Continue(BoardState),
     TurnOver(BoardState),
     GameOver(BoardState),
+    Winner,
 }
 
 #[derive(Debug, Clone)]
 pub struct Next {
     movement: Move,
-    consequence: Conseqence,
+    consequence: Consequence,
+}
+
+impl Next {
+    pub fn new(movement: Move, consequence: Consequence) -> Self {
+        Next { movement, consequence }
+    }
 }
 
 /*

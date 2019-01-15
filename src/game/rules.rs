@@ -6,14 +6,81 @@ use crate::hexagon::{
 };
 
 use super::{
-    tree::Move,
+    tree::{Move, BoardState, Consequence, Next},
     hold::Hold,
-    player::Player,
+    player::{Player, Players},
 };
 
 use super::Grid;
 
-fn all_legal_moves_from(grid: &Grid, player: Player) -> Vec<Move> {
+fn boardstate_consequences(boardstate: &BoardState, players: &mut Players) -> Vec<Next> {
+    let moves = all_legal_moves_from(boardstate.grid(), boardstate.player());
+
+    // If there's only the passing move, we check for winner or loser.
+    if moves.len() == 1 {
+        let action = moves[0];
+        
+        if winner(boardstate) {            
+            return vec![Next::new(action, Consequence::Winner)];
+        }
+
+        if loser(boardstate) {
+            let new_grid = grid_from_move(boardstate.grid(), action);
+            let new_board = BoardState::new(players.next(), new_grid);
+            return vec![Next::new(action, Consequence::GameOver(new_board))];
+        }
+    }
+
+    // Otherwise we continue
+
+    /*
+    moves
+        .into_iter()
+        .map(|action| {
+            
+        })
+        .count();
+     */
+
+    // TODO: Finish me
+    Vec::new()
+}
+
+/// Iterates through the entire board to see if they are all owned by the current player
+/// in the `BoardState`. If so, we have a winner. This function should only be called when
+/// there are no attacking moves possible from the same `BoardState` being fed in.
+fn winner(boardstate: &BoardState) -> bool {
+    let player = *boardstate.player();
+    boardstate
+        .grid()
+        .iter()
+        .try_for_each(|ht| {
+            if ht.data().owner() == &player {
+                Ok(())
+            } else {
+                Err(())
+            }
+        })
+        .is_ok()
+}
+
+/// A repeat of `winner` above. Should be able to check for either within the same iter.
+fn loser(boardstate: &BoardState) -> bool {
+    let player = *boardstate.player();
+    boardstate
+        .grid()
+        .iter()
+        .try_for_each(|ht| {
+            if ht.data().owner() != &player {
+                Ok(())
+            } else {
+                Err(())
+            }
+        })
+        .is_ok()
+}
+
+fn all_legal_moves_from(grid: &Grid, player: &Player) -> Vec<Move> {
     grid.iter()
         .fold(vec![Move::Pass], |mut moves, hex_tile| {
             let coordinate = *hex_tile.coordinate();
@@ -26,7 +93,7 @@ fn all_legal_moves_from(grid: &Grid, player: Player) -> Vec<Move> {
                         grid.fetch(neighbour)
                             .ok() // Ignore the misses
                             .and_then(|d| {
-                                if d.owner() != &player {
+                                if d.owner() != player {
                                     // We have an enemy tile. We count dice.
                                     if d.dice() < hold.dice() {
                                         // Player has more dice! This is an attacking move.
