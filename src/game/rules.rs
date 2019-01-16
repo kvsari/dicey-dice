@@ -145,3 +145,28 @@ fn attacking_move(grid: &Grid, from: coordinate::Cube, to: coordinate::Cube) -> 
         }
     })
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn winner_wins() {
+        let mut players = Players::new(2);
+        let grid = Grid::generate(100, 100, Hold::new(players.current(), 1));
+
+        let board = BoardState::new(players.current(), grid);
+
+        assert!(winner(&board));
+    }
+
+    #[test]
+    fn loser_loses() {
+        let mut players = Players::new(2);
+        let grid = Grid::generate(100, 100, Hold::new(players.current(), 1));
+
+        let board = BoardState::new(players.next(), grid);
+
+        assert!(loser(&board));
+    }
+}
