@@ -16,13 +16,13 @@ type StateIndex = usize;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Getters)]
 pub struct BoardState {
-    player: Player,
+    players: Players,
     grid: Grid,
 }
 
 impl BoardState {
-    pub fn new(player: Player, grid: Grid) -> Self {
-        BoardState { player, grid }
+    pub fn new(players: Players, grid: Grid) -> Self {
+        BoardState { players, grid }
     }
 
     /*
@@ -78,7 +78,7 @@ pub struct Tree {
 /// Generate a full grame decision free encompassing all possible legal moves starting
 /// from the current player returned by `players`.
 pub fn grow_entire_tree_from(grid: Grid, players: Players) -> Tree {
-    let starting_state = BoardState::new(players.current(), grid);
+    let starting_state = BoardState::new(players, grid);
 
     // TODO: Finish me.
     Tree {

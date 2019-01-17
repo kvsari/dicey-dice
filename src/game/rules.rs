@@ -13,8 +13,8 @@ use super::{
 
 use super::Grid;
 
-fn boardstate_consequences(boardstate: &BoardState, players: &mut Players) -> Vec<Next> {
-    let moves = all_legal_moves_from(boardstate.grid(), boardstate.player());
+fn boardstate_consequences(boardstate: &BoardState) -> Vec<Next> {
+    let moves = all_legal_moves_from(boardstate.grid(), &boardstate.players().current());
 
     // If there's only the passing move, we check for winner or loser.
     if moves.len() == 1 {
@@ -26,7 +26,7 @@ fn boardstate_consequences(boardstate: &BoardState, players: &mut Players) -> Ve
 
         if loser(boardstate) {
             let new_grid = grid_from_move(boardstate.grid(), action);
-            let new_board = BoardState::new(players.next(), new_grid);
+            let new_board = BoardState::new(boardstate.players().next(), new_grid);
             return vec![Next::new(action, Consequence::GameOver(new_board))];
         }
     }
@@ -50,7 +50,7 @@ fn boardstate_consequences(boardstate: &BoardState, players: &mut Players) -> Ve
 /// in the `BoardState`. If so, we have a winner. This function should only be called when
 /// there are no attacking moves possible from the same `BoardState` being fed in.
 fn winner(boardstate: &BoardState) -> bool {
-    let player = *boardstate.player();
+    let player = boardstate.players().current();
     boardstate
         .grid()
         .iter()
@@ -66,7 +66,7 @@ fn winner(boardstate: &BoardState) -> bool {
 
 /// A repeat of `winner` above. Should be able to check for either within the same iter.
 fn loser(boardstate: &BoardState) -> bool {
-    let player = *boardstate.player();
+    let player = boardstate.players().current();
     boardstate
         .grid()
         .iter()
@@ -152,17 +152,17 @@ mod test {
 
     #[test]
     fn winner_wins() {
-        let mut players = Players::new(2);
+        let players = Players::new(2);
         let grid = Grid::generate(100, 100, Hold::new(players.current(), 1));
 
-        let board = BoardState::new(players.current(), grid);
+        let board = BoardState::new(players, grid);
 
         assert!(winner(&board));
     }
 
     #[test]
     fn loser_loses() {
-        let mut players = Players::new(2);
+        let players = Players::new(2);
         let grid = Grid::generate(100, 100, Hold::new(players.current(), 1));
 
         let board = BoardState::new(players.next(), grid);

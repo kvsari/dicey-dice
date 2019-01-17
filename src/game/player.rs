@@ -39,6 +39,7 @@ impl fmt::Display for Player {
     }
 }
 
+/*
 #[derive(Debug, Copy, Clone)]
 enum State {
     Present(Player),
@@ -69,15 +70,17 @@ impl Default for State {
         State::empty()
     }
 }
+*/
 
 /// Player management rolled into one struct. Keeps track of the current player and
 /// emits the next player. There is an upper limit of `MAX_PLAYERS` players.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct Players {
     players: usize,
     current: usize,
-    playing: usize,
-    roster: [State; MAX_PLAYERS],
+    count: usize,
+    playing: [Option<Player>; MAX_PLAYERS],
+    out: [Option<Player>; MAX_PLAYERS],
 }
 
 impl Players {
@@ -92,43 +95,79 @@ impl Players {
             players
         };
 
-        let playing = players;
+        //let playing = players;
         let current = 0;
 
-        let mut roster = [State::default(); MAX_PLAYERS];
+        //let mut roster = [State::default(); MAX_PLAYERS];
+        let mut playing = [None; MAX_PLAYERS];
 
-        roster
+        playing
             .iter_mut()
             .enumerate()
-            .for_each(|(index, state)| {
+            .for_each(|(index, slot)| {
                 let character: char = ((65 + index) as u8).into();
                 let player = Player::new(index, character);
-                let mut n_state = State::new(player);
-                mem::swap(state, &mut n_state);
+                let mut n_state = Some(player);
+                mem::swap(slot, &mut n_state);
             });
 
         Players {
-            players, current, playing, roster
+            players,
+            current,
+            count: players,
+            playing,            
+            out: [None; MAX_PLAYERS],
         }
     }
 
     pub fn current(&self) -> Player {
-        self.players[self.current]
+        self.playing[self.current].unwrap()
     }
 
-    /*
-    pub fn next(&self) -> Player {
-        self.current += 1;
-        if self.current >= self.count {
-            self.current = 0;
+    /// Create a copy of self with the current player index incremented.
+    pub fn next(&self) -> Self {
+        let mut new_self = self.to_owned();
+        new_self.current += 1;
+        if new_self.current >= self.count {
+            new_self.current = 0;
         }
-        self.current()
+        new_self
     }
-    */
+
+    /// Returns a new `Players` struct with the current player moved into the `out` slot.
+    /// The `count` will be reduced by one and the new current player will be moved to the
+    /// next one. It is not possible to remove the last player as subsequent calls will just
+    /// return a copy of `self`.
+    pub fn remove_current(&self) -> Self {
+        let mut new_self = self.to_owned();
+        
+        if new_self.count == 1 {
+            return new_self;
+        }
+
+        new_self.count -= 1;
+        let mut player = new_self.playing[new_self.current].take();
+        assert!(player.is_some());
+        mem::swap(&mut new_self.out[new_self.current], &mut player);
+
+        // shuffle down by one all after current.
+        for i in (new_self.current + 1)..MAX_PLAYERS {
+            if new_self.playing[i].is_some() {
+                let mut shuffle = new_self.playing[i].take();
+                mem::swap(&mut new_self.playing[i - 1], &mut shuffle);
+            }
+        }
+
+        if new_self.current >= new_self.count {
+            new_self.current = 0;
+        }
+
+        new_self
+    }
 }
 
 impl Distribution<Player> for Players {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Player {
-        self.players[rng.gen_range(0, self.count)]
+        self.playing[rng.gen_range(0, self.count)].unwrap()
     }
 }
