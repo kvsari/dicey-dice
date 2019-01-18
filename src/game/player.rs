@@ -39,39 +39,6 @@ impl fmt::Display for Player {
     }
 }
 
-/*
-#[derive(Debug, Copy, Clone)]
-enum State {
-    Present(Player),
-    Removed(Player),
-    Empty,
-}
-
-impl State {
-    fn new(player: Player) -> Self {
-        State::Present(player)
-    }
-
-    fn empty() -> Self {
-        State::Empty
-    }
-
-    fn remove(&self) -> Self {
-        match self {
-            State::Present(p) => State::Removed(p),
-            State::Removed(p) => State::Removed(p),
-            State::Empty => State::Empty,
-        }
-    }
-}
-
-impl Default for State {
-    fn default() -> Self {
-        State::empty()
-    }
-}
-*/
-
 /// Player management rolled into one struct. Keeps track of the current player and
 /// emits the next player. There is an upper limit of `MAX_PLAYERS` players.
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -106,7 +73,7 @@ impl Players {
             .enumerate()
             .for_each(|(index, slot)| {
                 let character: char = ((65 + index) as u8).into();
-                let player = Player::new(index, character);
+                let player = Player::new(index + 1, character);
                 let mut n_state = Some(player);
                 mem::swap(slot, &mut n_state);
             });
@@ -118,6 +85,10 @@ impl Players {
             playing,            
             out: [None; MAX_PLAYERS],
         }
+    }
+
+    pub fn player_count(&self) -> usize {
+        self.count
     }
 
     pub fn current(&self) -> Player {
@@ -169,5 +140,50 @@ impl Players {
 impl Distribution<Player> for Players {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Player {
         self.playing[rng.gen_range(0, self.count)].unwrap()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn next_player() {
+        let players = Players::new(4);
+        let player1 = Player::new(1, 'A');
+        let player2 = Player::new(2, 'B');
+        let player3 = Player::new(3, 'C');
+        let player4 = Player::new(4, 'D');
+
+        assert!(player1 == players.current());
+        let players = players.next();
+        assert!(player2 == players.current());
+        let players = players.next();
+        assert!(player3 == players.current());
+        let players = players.next();
+        assert!(player4 == players.current());
+        let players = players.next();
+        assert!(player1 == players.current());
+    }
+
+    #[test]
+    fn remove_players() {
+        let players = Players::new(4);
+        let player1 = Player::new(1, 'A');
+        let player2 = Player::new(2, 'B');
+        let player3 = Player::new(3, 'C');
+        let player4 = Player::new(4, 'D');
+
+        assert!(player1 == players.current());
+        let players = players.remove_current();
+        assert!(players.player_count() == 3);
+        assert!(player2 == players.current());
+        let players = players.next();
+        assert!(player3 == players.current());
+        let players = players.remove_current();
+        assert!(players.player_count() == 2);
+        assert!(player4 == players.current());
+        let players = players.next();
+        assert!(player2 == players.current());
     }
 }

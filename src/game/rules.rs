@@ -13,37 +13,42 @@ use super::{
 
 use super::Grid;
 
-fn boardstate_consequences(boardstate: &BoardState) -> Vec<Next> {
-    let moves = all_legal_moves_from(boardstate.grid(), &boardstate.players().current());
+pub fn boardstate_consequences(boardstate: &BoardState) -> Vec<Next> {
+    let attacking_moves = all_legal_attacks_from(
+        boardstate.grid(), &boardstate.players().current()
+    );
 
-    // If there's only the passing move, we check for winner or loser.
-    if moves.len() == 1 {
-        let action = moves[0];
-        
+    // If there are no attacking moves, we quickly check if the player has won or lost.
+    if attacking_moves.is_empty() {
         if winner(boardstate) {            
-            return vec![Next::new(action, Consequence::Winner)];
+            return vec![Next::new(Move::Pass, Consequence::Winner)];
         }
 
         if loser(boardstate) {
-            let new_grid = grid_from_move(boardstate.grid(), action);
-            let new_board = BoardState::new(boardstate.players().next(), new_grid);
-            return vec![Next::new(action, Consequence::GameOver(new_board))];
+            let new_grid = grid_from_move(boardstate.grid(), Move::Pass);
+            let new_board = BoardState::new(
+                boardstate.players().remove_current(), new_grid
+            );
+            return vec![Next::new(Move::Pass, Consequence::GameOver(new_board))];
         }
     }
 
-    // Otherwise we continue
-
-    /*
-    moves
+    // Otherwise we continue.
+    let mut moves: Vec<Next> = attacking_moves
         .into_iter()
-        .map(|action| {
-            
+        .map(|attack| {
+            let new_grid = grid_from_move(boardstate.grid(), attack);
+            let new_board = boardstate.update_grid(new_grid);
+            Next::new(attack, Consequence::Continue(new_board))
         })
-        .count();
-     */
+        .collect();
 
-    // TODO: Finish me
-    Vec::new()
+    // And we tack on the passing move at the end.
+    let new_grid = grid_from_move(boardstate.grid(), Move::Pass);
+    let new_board = boardstate.update_grid(new_grid);
+    moves.push(Next::new(Move::Pass, Consequence::TurnOver(new_board)));
+
+    moves
 }
 
 /// Iterates through the entire board to see if they are all owned by the current player
@@ -80,9 +85,10 @@ fn loser(boardstate: &BoardState) -> bool {
         .is_ok()
 }
 
-fn all_legal_moves_from(grid: &Grid, player: &Player) -> Vec<Move> {
+/// Produces all legal attacking moves.
+fn all_legal_attacks_from(grid: &Grid, player: &Player) -> Vec<Move> {
     grid.iter()
-        .fold(vec![Move::Pass], |mut moves, hex_tile| {
+        .fold(Vec::new(), |mut moves, hex_tile| {
             let coordinate = *hex_tile.coordinate();
             let hold = *hex_tile.data();
             moves.extend(

@@ -1,10 +1,12 @@
 //! The tree containing all the legal moves in a game.
 use std::collections::HashMap;
+use std::iter::Extend;
 
 use derive_getters::Getters;
 
 use crate::hexagon::{coordinate, grid};
 use super::{
+    rules,
     Grid,
     hold::Hold,
     player::{Player, Players},
@@ -23,6 +25,14 @@ pub struct BoardState {
 impl BoardState {
     pub fn new(players: Players, grid: Grid) -> Self {
         BoardState { players, grid }
+    }
+
+    /// Create a copy of self with only the `grid` updated. Current player remains same.
+    pub fn update_grid(&self, grid: Grid) -> Self {
+        BoardState {
+            players: self.players,
+            grid,
+        }
     }
 
     /*
@@ -46,6 +56,17 @@ pub enum Consequence {
     TurnOver(BoardState),
     GameOver(BoardState),
     Winner,
+}
+
+impl Consequence {
+    fn boardstate(&self) -> Option<&BoardState> {
+        match self {
+            Consequence::Continue(ref b) => Some(b),
+            Consequence::TurnOver(ref b) => Some(b),
+            Consequence::GameOver(ref b) => Some(b),
+            Consequence::Winner => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -80,11 +101,44 @@ pub struct Tree {
 pub fn grow_entire_tree_from(grid: Grid, players: Players) -> Tree {
     let starting_state = BoardState::new(players, grid);
 
-    // TODO: Finish me.
     Tree {
         players,
-        start: starting_state,
+        start: starting_state.clone(),
         traversal: Vec::new(),
-        states: HashMap::new(),
+        states: calculate_all_consequences(starting_state),
     }
+}
+
+/// Function will build all boardstates from `start`  inserting them into the `states` map.
+/// If the boardstate already exists will skip that boardstate. This function has no
+/// horizon so it won't stop generating until the stack is empty.
+fn calculate_all_consequences(start: BoardState) -> HashMap<BoardState, Vec<Next>> {
+    let mut stack: Vec<BoardState> = Vec::new();
+    let mut states: HashMap<BoardState, Vec<Next>> = HashMap::new();
+    
+    // 1. Seed tree generation by pushing the first boardstate onto the stack.
+    stack.push(start);
+
+    // 2. Get the next boardstate off the stack.
+    while let Some(board) = stack.pop() {
+        // 3. Check if the board hasn't been stored yet. If it has we skip.
+        if !states.contains_key(&board) {           
+            // 4. If not, we calculate the `Next`s.
+            let nexts = rules::boardstate_consequences(&board);
+
+            // 5. We then push all the resulting boardstates onto the stack.
+            stack.extend(
+                nexts
+                    .iter()
+                    .filter_map(|next| next.consequence.boardstate())
+                    .map(|board| board.clone())
+            );
+
+            // 6. Then we insert the boardstate and `Next`s into the map.
+            states.insert(board, nexts);
+        }
+    }
+
+    // 7. Return results of traversal.
+    states
 }
