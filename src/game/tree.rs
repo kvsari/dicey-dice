@@ -1,6 +1,7 @@
 //! The tree containing all the legal moves in a game.
 use std::collections::HashMap;
 use std::iter::Extend;
+use std::fmt;
 
 use derive_getters::Getters;
 
@@ -40,6 +41,17 @@ impl BoardState {
     fn winning_with<F: Fn(&Grid, &Player) -> bool>(&self, f: F) -> bool {
     }
     */
+}
+
+impl fmt::Display for BoardState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Current Player: {}\nBoard ====\n{}",
+            &self.players.current(),
+            &self.grid,
+        )
+    }
 }
 
 /// A legal move from one `BoardState` into another.
@@ -94,6 +106,12 @@ pub struct Tree {
     start: BoardState,
     traversal: Vec<BoardState>,
     states: HashMap<BoardState, Vec<Next>>,
+}
+
+impl Tree {
+    pub fn current_traversal(&self) -> &BoardState {
+        self.traversal.last().unwrap()
+    }
 }
 
 /// Generate a full grame decision free encompassing all possible legal moves starting
