@@ -148,6 +148,15 @@ mod test {
     use super::*;
 
     #[test]
+    fn initialize() {
+        let players = Players::new(1);
+        assert!(players.player_count() == 2);
+
+        let players = Players::new(MAX_PLAYERS * 10);
+        assert!(players.player_count() == MAX_PLAYERS);
+    }
+
+    #[test]
     fn next_player() {
         let players = Players::new(4);
         let player1 = Player::new(1, 'A');

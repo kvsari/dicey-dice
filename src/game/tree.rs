@@ -104,7 +104,7 @@ pub fn grow_entire_tree_from(grid: Grid, players: Players) -> Tree {
     Tree {
         players,
         start: starting_state.clone(),
-        traversal: Vec::new(),
+        traversal: vec![starting_state.clone()],
         states: calculate_all_consequences(starting_state),
     }
 }

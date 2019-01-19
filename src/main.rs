@@ -7,6 +7,13 @@ use lib::game;
 fn main() {
     println!("Dicey Dice starting...");
 
-    let grid = game::generate_random_2x2_board_game();
-    println!("{}", &grid);
+    //let grid = game::generate_random_2x2_board_game();
+    //println!("{}", &grid);
+
+    let players = game::Players::new(2);
+    let starting_grid = game::generate_random_grid(3, 3, players);
+
+    let tree = game::tree::grow_entire_tree_from(starting_grid, players);
+
+    println!("RAW GAME TREE: {:?}", &tree);
 }

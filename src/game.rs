@@ -10,6 +10,8 @@ mod rules;
 
 type Grid = hexagon::grid::Rectangular<hold::Hold>;
 
+pub use self::player::Players;
+
 /// Temporary function. Remove this with a properly wrapped up game tree. An intermediate
 /// step is to return a game turn that will wrap the `hold::Hold` allowing that sub-module
 /// to be made private.
@@ -19,6 +21,16 @@ pub fn generate_random_2x2_board_game() -> hexagon::grid::Rectangular<hold::Hold
     let players = player::Players::new(2);
     
     grid.fork_with(move |_, _| {
+        let player_dice = rng.gen_range(1, 6);
+        hold::Hold::new(players.sample(&mut rng), player_dice)
+    })
+}
+
+pub fn generate_random_grid(columns: u32, rows: u32, players: Players) -> Grid {
+    let mut rng = thread_rng();
+    let grid = Grid::generate(columns, rows, hold::Hold::default());
+
+    grid.fork_with(move |_,_| {
         let player_dice = rng.gen_range(1, 6);
         hold::Hold::new(players.sample(&mut rng), player_dice)
     })
