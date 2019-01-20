@@ -47,7 +47,7 @@ impl fmt::Display for BoardState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "Current Player: {}\nBoard ====\n{}",
+            "Current Player: {}\nBoard ===========\n{}",
             &self.players.current(),
             &self.grid,
         )
@@ -132,6 +132,15 @@ impl Tree {
         self.traversal.last().unwrap()
     }
 
+    pub fn available_moves(&self) -> Vec<Move> {
+        self.states
+            .get(self.current_traversal())
+            .unwrap()
+            .iter()
+            .map(|n| n.movement)
+            .collect()
+    }
+
     pub fn game_on(&self) -> bool {
         let nexts = self.states.get(self.current_traversal()).unwrap().to_owned();
         nexts[0].consequence != Consequence::Winner
@@ -140,11 +149,9 @@ impl Tree {
 
 /// Generate a full grame decision free encompassing all possible legal moves starting
 /// from the current player returned by `players`.
-pub fn grow_entire_tree_from(grid: Grid, players: Players) -> Tree {
-    let starting_state = BoardState::new(players, grid);
-
+pub fn grow_entire_tree_from(starting_state: BoardState) -> Tree {
     Tree {
-        players,
+        players: starting_state.players,
         start: starting_state.clone(),
         traversal: vec![starting_state.clone()],
         states: calculate_all_consequences(starting_state),

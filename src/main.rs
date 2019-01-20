@@ -7,12 +7,15 @@ use lib::game;
 fn main() {
     println!("Dicey Dice starting...");
 
-    let players = game::Players::new(2);
-    let starting_grid = game::generate_random_grid(3, 3, players);
+    //let players = game::Players::new(2);
+    //let starting_grid = game::generate_random_grid(2, 2, players);
+    let start = game::canned_2x2_start01();
+    
+    let tree = game::tree::grow_entire_tree_from(start);
 
-    let tree = game::tree::grow_entire_tree_from(starting_grid, players);
+    //println!("RAW GAME TREE: {:?}", &tree);
 
-    println!("RAW GAME TREE: {:?}", &tree);
+    //println!("{}", tree.current_traversal());
 
-    println!("{}", tree.current_traversal());
+    lib::console::handle_turn(&tree);
 }

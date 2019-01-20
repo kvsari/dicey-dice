@@ -16,7 +16,7 @@ pub struct Player {
 }
 
 impl Player {
-    fn new(number: usize, display: char) -> Self {
+    pub fn new(number: usize, display: char) -> Self {
         Player {
             number,
             display,

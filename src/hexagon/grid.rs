@@ -1,7 +1,8 @@
 //! Contain the hexagonal grid using cube coordinates.
-use std::{fmt, mem, hash};
+use std::{fmt, mem, hash, iter};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::iter::IntoIterator;
 
 use super::coordinate::{Cube, IntoCube, DIRECTION, PointDirection};
 use super::errors::*;
@@ -160,6 +161,13 @@ impl<T: Copy + Clone + Hash + PartialEq + Eq> Rectangular<T> {
         
         clone
     }
+
+    /// HACK: To be used after creating a grid using an iterator. Otherwise won't display on the
+    ///       console properly
+    pub (crate) fn set_columns_and_rows(&mut self, columns: i32, rows: i32) {
+        self.rows = rows;
+        self.columns = columns;
+    }
 }
 
 /// Simple staggered display of the hexagonal board. Use an ncurses lib for more
@@ -199,6 +207,31 @@ impl<T: Copy + Clone + Hash + PartialEq + Eq> Hash for Rectangular<T> {
         self.columns.hash(state);
         self.rows.hash(state);
         self.hexes.hash(state);
+    }
+}
+
+impl<T: Copy + Clone + Hash + PartialEq + Eq> iter::FromIterator<(Cube, T)> for Rectangular<T> {
+    fn from_iter<I: IntoIterator<Item = (Cube, T)>>(iter: I) -> Self {
+        let mut hexes: Vec<(Cube, T)> = Vec::new();
+
+        for i in iter {
+            hexes.push(i);
+        }
+
+        let index = hexes
+            .iter()
+            .enumerate()
+            .fold(HashMap::new(), |mut map, (i, (c, _))| {
+                map.insert(*c, i);
+                map
+            });
+
+        Rectangular {
+            columns: 0,
+            rows: 0,
+            hexes,
+            index
+        }
     }
 }
 

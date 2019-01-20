@@ -177,4 +177,25 @@ mod test {
 
         assert!(loser(&board));
     }
+
+    #[test]
+    fn can_only_pass() {
+        let players = Players::new(2);
+        let player1 = Player::new(1, 'A');
+        let player2 = Player::new(2, 'B');
+        let grid = Grid::generate(2, 2, Hold::new(players.current(), 1));
+        let grid = grid.fork_with(|cube, hold| {
+            if *cube == (0, 0).into() {
+                return Hold::new(player1, 2);
+            }
+            Hold::new(player2, 3);
+            Hold::new(player2, 3);
+            Hold::new(player2, 5)
+        });
+
+        let board = BoardState::new(players, grid);
+
+        let consequences = boardstate_consequences(&board);
+        assert!(consequences.len() == 1);
+    }
 }
