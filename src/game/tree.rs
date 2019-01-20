@@ -61,8 +61,17 @@ pub enum Move {
     Pass,
 }
 
+impl fmt::Display for Move {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Move::Attack(from, to) => write!(f, "Attack from {} into {}", from, to),
+            Move::Pass => write!(f, "Pass turn."),
+        }
+    }
+}
+
 /// What follows from a `Move`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Consequence {
     Continue(BoardState),
     TurnOver(BoardState),
@@ -80,6 +89,16 @@ impl Consequence {
         }
     }
 }
+
+/*
+impl fmt::Display for Consequence {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Consequence::Continue(_) => write!("Continue
+        }
+    }
+}
+*/
 
 #[derive(Debug, Clone)]
 pub struct Next {
@@ -111,6 +130,11 @@ pub struct Tree {
 impl Tree {
     pub fn current_traversal(&self) -> &BoardState {
         self.traversal.last().unwrap()
+    }
+
+    pub fn game_on(&self) -> bool {
+        let nexts = self.states.get(self.current_traversal()).unwrap().to_owned();
+        nexts[0].consequence != Consequence::Winner
     }
 }
 

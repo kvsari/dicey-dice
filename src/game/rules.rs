@@ -13,6 +13,8 @@ use super::{
 
 use super::Grid;
 
+//pub fn game_on(&
+
 pub fn boardstate_consequences(boardstate: &BoardState) -> Vec<Next> {
     let attacking_moves = all_legal_attacks_from(
         boardstate.grid(), &boardstate.players().current()

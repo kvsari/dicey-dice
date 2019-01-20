@@ -1,5 +1,5 @@
 //! Coordinate systems.
-use std::{convert, ops};
+use std::{convert, ops, fmt};
 use std::ops::Neg;
 
 use super::errors::*;
@@ -237,6 +237,12 @@ impl ops::Add<Axial> for Cube {
 
     fn add(self, other: Axial) -> Cube {
         self + other.cube().unwrap()
+    }
+}
+
+impl fmt::Display for Cube {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({},{},{})", &self.x, &self.y, &self.z)
     }
 }
 

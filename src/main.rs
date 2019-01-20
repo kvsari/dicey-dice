@@ -12,5 +12,7 @@ fn main() {
 
     let tree = game::tree::grow_entire_tree_from(starting_grid, players);
 
-    //println!("RAW GAME TREE: {:?}", &tree);
+    println!("RAW GAME TREE: {:?}", &tree);
+
+    println!("{}", tree.current_traversal());
 }
