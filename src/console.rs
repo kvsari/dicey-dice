@@ -1,7 +1,7 @@
-//! Console operations for playing the game on the command line. Aiming for bare minimum simplicity
-//! here and not some fancy term driven app. The console is to verify that the engine works. The
-//! intended UI will be something else.
-use crate::game::tree::Tree;
+//! Console operations for playing the game on the command line. Aiming for bare minimum
+//! simplicity here and not some fancy term driven app. The console is to verify that the
+//! engine works. The intended UI will be something else.
+use crate::game::tree::{Tree, Move};
 
 pub fn session(tree: &mut Tree) {
     println!("Starting game!");
@@ -20,16 +20,20 @@ pub fn handle_turn(tree: &Tree) {
 
     // 3. Print it out as a nice list.
     println!("Movement options. Or 'q' to quit.");
-    available_moves
-        .iter()
-        .enumerate()
-        .for_each(|(num, mv)| {
-            println!("{}. {}", num + 1, mv);
-        });
+    print_moves_from_nexts(&available_moves);
 
     // 4. Get player input with 'q' for quitting.
 
     // 5. Validate. Loop if necessary.
 
     // 6. Return the move that was chosen.
+}
+
+pub fn print_moves_from_nexts(nexts: &[Move]) {
+    nexts
+        .iter()
+        .enumerate()
+        .for_each(|(num, mv)| {
+            println!("{}. {}", num + 1, mv);
+        }); 
 }

@@ -91,33 +91,39 @@ fn loser(boardstate: &BoardState) -> bool {
 fn all_legal_attacks_from(grid: &Grid, player: &Player) -> Vec<Move> {
     grid.iter()
         .fold(Vec::new(), |mut moves, hex_tile| {
+            //dbg!(hex_tile);
             let coordinate = *hex_tile.coordinate();
             let hold = *hex_tile.data();
-            moves.extend(
-                coordinate
-                    .neighbours()
-                    .iter()
-                    .filter_map(|neighbour| {
-                        grid.fetch(neighbour)
-                            .ok() // Ignore the misses
-                            .and_then(|d| {
-                                if d.owner() != player {
-                                    // We have an enemy tile. We count dice.
-                                    if d.dice() < hold.dice() {
-                                        // Player has more dice! This is an attacking move.
-                                        Some(Move::Attack(coordinate, *neighbour))
+
+            if hold.owner() == player {
+                moves.extend(
+                    coordinate
+                        .neighbours()
+                        .iter()
+                        .filter_map(|neighbour| {
+                            //dbg!(neighbour);
+                            grid.fetch(neighbour)
+                                .ok() // Ignore the misses
+                                .and_then(|d| {
+                                    //dbg!(d);
+                                    if d.owner() != player {
+                                        // We have an enemy tile. We count dice.
+                                        if d.dice() < hold.dice() {
+                                            // Player has more dice! 
+                                            Some(Move::Attack(coordinate, *neighbour))
+                                        } else {
+                                            // Player doesn't have enough dice.
+                                            None
+                                        }
                                     } else {
-                                        // Player doesn't have enough dice. Can't attack.
+                                        // Our tile is owned by the player. No move here.
                                         None
                                     }
-                                } else {
-                                    // Our tile is owned by the player. No move here.
-                                    None
-                                }
-                            })
-                    })
-            );
-
+                                })
+                        })
+                );
+            }
+                
             moves
         })
 }
@@ -179,23 +185,26 @@ mod test {
     }
 
     #[test]
-    fn can_only_pass() {
-        let players = Players::new(2);
-        let player1 = Player::new(1, 'A');
-        let player2 = Player::new(2, 'B');
-        let grid = Grid::generate(2, 2, Hold::new(players.current(), 1));
-        let grid = grid.fork_with(|cube, hold| {
-            if *cube == (0, 0).into() {
-                return Hold::new(player1, 2);
-            }
-            Hold::new(player2, 3);
-            Hold::new(player2, 3);
-            Hold::new(player2, 5)
-        });
+    fn no_attacking_moves_available() {
+        let board = super::super::canned_2x2_start01();
+        let attacks = all_legal_attacks_from(board.grid(), &board.players().current());
+        
+        assert!(attacks.is_empty());
+    }
 
-        let board = BoardState::new(players, grid);
+    #[test]
+    fn one_attacking_move_available() {
+        let board = super::super::canned_2x2_start02();
+        let attacks = all_legal_attacks_from(board.grid(), &board.players().current());
+        
+        assert!(attacks.len() == 1);
+    }
 
-        let consequences = boardstate_consequences(&board);
-        assert!(consequences.len() == 1);
+    #[test]
+    fn two_attacking_moves_available() {
+        let board = super::super::canned_2x2_start03();
+        let attacks = all_legal_attacks_from(board.grid(), &board.players().current());
+        
+        assert!(attacks.len() == 2);
     }
 }
