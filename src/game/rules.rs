@@ -47,7 +47,7 @@ pub fn boardstate_consequences(boardstate: &BoardState) -> Vec<Next> {
 
     // And we tack on the passing move at the end.
     let new_grid = grid_from_move(boardstate.grid(), Move::Pass);
-    let new_board = boardstate.update_grid(new_grid);
+    let new_board = BoardState::new(boardstate.players().next(), new_grid);
     moves.push(Next::new(Move::Pass, Consequence::TurnOver(new_board)));
 
     moves
@@ -206,5 +206,23 @@ mod test {
         let attacks = all_legal_attacks_from(board.grid(), &board.players().current());
         
         assert!(attacks.len() == 2);
+    }
+
+    #[test]
+    fn test_turn_over() {
+        let player2 = Player::new(2, 'B');
+        let board = super::super::canned_2x2_start01();
+        let mut nexts = boardstate_consequences(&board);
+
+        assert!(nexts.len() == 1);
+        let next = nexts.pop().unwrap();
+        assert!(*next.movement() == Move::Pass);
+        let consequence = next.consequence();
+        match consequence {
+            Consequence::TurnOver(board) => {
+                assert!(board.players().current() == player2);
+            },
+            _ => panic!("Invalid consequence."),
+        }
     }
 }

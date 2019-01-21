@@ -80,7 +80,7 @@ pub enum Consequence {
 }
 
 impl Consequence {
-    fn boardstate(&self) -> Option<&BoardState> {
+    pub fn boardstate(&self) -> Option<&BoardState> {
         match self {
             Consequence::Continue(ref b) => Some(b),
             Consequence::TurnOver(ref b) => Some(b),
@@ -100,7 +100,7 @@ impl fmt::Display for Consequence {
 }
 */
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Getters)]
 pub struct Next {
     movement: Move,
     consequence: Consequence,
@@ -144,6 +144,29 @@ impl Tree {
     pub fn game_on(&self) -> bool {
         let nexts = self.states.get(self.current_traversal()).unwrap().to_owned();
         nexts[0].consequence != Consequence::Winner
+    }
+
+    /// Choose a consequence (move). The choice is an array index into the consequences
+    /// available for the current boardstate (last traversal). If the choice is a valid
+    /// array index, the consequent boardstate will be pushed onto the traversal and true
+    /// will be returned. Otherwise false.
+    pub fn choose(&mut self, choice: usize) -> bool {
+        let nexts = self.states
+            .get(self.current_traversal())
+            .unwrap();
+
+        if choice >= nexts.len() {
+            return false;
+        }
+
+        if let Some(board) = nexts[choice].consequence.boardstate() {
+            self.traversal.push(board.to_owned());
+            
+            true
+        } else {
+            // In this case we have a winner. No more traversals available.
+            false
+        }
     }
 }
 
