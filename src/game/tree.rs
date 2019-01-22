@@ -8,9 +8,10 @@ use derive_getters::Getters;
 use crate::hexagon::{coordinate, grid};
 use super::{
     rules,
-    Grid,
-    hold::Hold,
-    player::{Player, Players},
+    Mesh,
+    Hold,
+    Player,
+    Players,
 };
 
 type FromHex = coordinate::Cube;
@@ -20,16 +21,16 @@ type StateIndex = usize;
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Getters)]
 pub struct BoardState {
     players: Players,
-    grid: Grid,
+    grid: Mesh,
 }
 
 impl BoardState {
-    pub fn new(players: Players, grid: Grid) -> Self {
+    pub fn new(players: Players, grid: Mesh) -> Self {
         BoardState { players, grid }
     }
 
     /// Create a copy of self with only the `grid` updated. Current player remains same.
-    pub fn update_grid(&self, grid: Grid) -> Self {
+    pub fn update_grid(&self, grid: Mesh) -> Self {
         BoardState {
             players: self.players,
             grid,

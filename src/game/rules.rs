@@ -7,13 +7,11 @@ use crate::hexagon::{
 
 use super::{
     tree::{Move, BoardState, Consequence, Next},
-    hold::Hold,
-    player::{Player, Players},
+    Hold,
+    Player,
+    Players,
+    Mesh,
 };
-
-use super::Grid;
-
-//pub fn game_on(&
 
 pub fn boardstate_consequences(boardstate: &BoardState) -> Vec<Next> {
     let attacking_moves = all_legal_attacks_from(
@@ -88,7 +86,7 @@ fn loser(boardstate: &BoardState) -> bool {
 }
 
 /// Produces all legal attacking moves.
-fn all_legal_attacks_from(grid: &Grid, player: &Player) -> Vec<Move> {
+fn all_legal_attacks_from(grid: &Mesh, player: &Player) -> Vec<Move> {
     grid.iter()
         .fold(Vec::new(), |mut moves, hex_tile| {
             //dbg!(hex_tile);
@@ -130,7 +128,7 @@ fn all_legal_attacks_from(grid: &Grid, player: &Player) -> Vec<Move> {
 
 /// Generates a new grid that bears the consequences of the supplied movement. Doesn't
 /// check if the move is legal.
-fn grid_from_move(grid: &Grid, movement: Move) -> Grid {
+fn grid_from_move(grid: &Mesh, movement: Move) -> Mesh {
     match movement {
         Move::Pass => grid.to_owned(),
         Move::Attack(from, to) => attacking_move(grid, from, to),
@@ -140,7 +138,7 @@ fn grid_from_move(grid: &Grid, movement: Move) -> Grid {
 /// An attacking move that removes all the dice except one from the `from` hexagon and
 /// places them minus one to the `to` tile. There is no error checking as this function
 /// expects correct parameters to be entered. Thus invalid data will cause a panic.
-fn attacking_move(grid: &Grid, from: coordinate::Cube, to: coordinate::Cube) -> Grid {
+fn attacking_move(grid: &Mesh, from: coordinate::Cube, to: coordinate::Cube) -> Mesh {
     let (to_hold, from_hold) = grid
         .fetch(&from)
         .map(|h| (
@@ -162,12 +160,14 @@ fn attacking_move(grid: &Grid, from: coordinate::Cube, to: coordinate::Cube) -> 
 
 #[cfg(test)]
 mod test {
+    use crate::hexagon::Rectangular;
     use super::*;
 
     #[test]
     fn winner_wins() {
         let players = Players::new(2);
-        let grid = Grid::generate(100, 100, Hold::new(players.current(), 1));
+        let grid: Mesh = Rectangular::generate(100, 100, Hold::new(players.current(), 1))
+            .into();
 
         let board = BoardState::new(players, grid);
 
@@ -177,7 +177,8 @@ mod test {
     #[test]
     fn loser_loses() {
         let players = Players::new(2);
-        let grid = Grid::generate(100, 100, Hold::new(players.current(), 1));
+        let grid: Mesh = Rectangular::generate(100, 100, Hold::new(players.current(), 1))
+            .into();
 
         let board = BoardState::new(players.next(), grid);
 

@@ -10,20 +10,21 @@ pub mod tree;
 pub mod hold;
 mod rules;
 
+use crate::hexagon::{Rectangular, Grid};
 use crate::hexagon::coordinate::Cube;
-
-type Grid = hexagon::grid::Rectangular<hold::Hold>;
 
 pub use self::hold::Hold;
 pub use self::player::{Player, Players};
 
-pub fn generate_random_grid(columns: u32, rows: u32, players: Players) -> Grid {
+type Mesh = Grid<Hold>;
+
+pub fn generate_random_grid(columns: u32, rows: u32, players: Players) -> Mesh {
     let mut rng = thread_rng();
-    let grid = Grid::generate(columns, rows, hold::Hold::default());
+    let grid: Mesh = Rectangular::generate(columns, rows, hold::Hold::default()).into();
 
     grid.fork_with(move |_,_| {
         let player_dice = rng.gen_range(1, 6);
-        hold::Hold::new(players.sample(&mut rng), player_dice)
+        Hold::new(players.sample(&mut rng), player_dice)
     })
 }
 
@@ -38,9 +39,8 @@ pub fn canned_2x2_start01() -> tree::BoardState {
         (Cube::from((0, 1)), Hold::new(player2, 3)),
         (Cube::from((1, 1)), Hold::new(player2, 5)),
     ];
-    let mut grid: Grid = hexes.into_iter().collect();
-    grid.set_columns_and_rows(2, 2);
-    tree::BoardState::new(players, grid)
+    let grid: Mesh = hexes.into_iter().collect();
+    tree::BoardState::new(players, grid.change_to_rectangle(2, 2))
 }
 
 /// Board where player A has one attacking move.
@@ -54,9 +54,8 @@ pub fn canned_2x2_start02() -> tree::BoardState {
         (Cube::from((0, 1)), Hold::new(player2, 3)),
         (Cube::from((1, 1)), Hold::new(player2, 5)),
     ];
-    let mut grid: Grid = hexes.into_iter().collect();
-    grid.set_columns_and_rows(2, 2);
-    tree::BoardState::new(players, grid)
+    let grid: Mesh = hexes.into_iter().collect();
+    tree::BoardState::new(players, grid.change_to_rectangle(2, 2))
 }
 
 /// Board where player A has two attacking moves.
@@ -70,7 +69,6 @@ pub fn canned_2x2_start03() -> tree::BoardState {
         (Cube::from((0, 1)), Hold::new(player2, 3)),
         (Cube::from((1, 1)), Hold::new(player2, 5)),
     ];
-    let mut grid: Grid = hexes.into_iter().collect();
-    grid.set_columns_and_rows(2, 2);
-    tree::BoardState::new(players, grid)
+    let grid: Mesh = hexes.into_iter().collect();
+    tree::BoardState::new(players, grid.change_to_rectangle(2, 2))
 }
