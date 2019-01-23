@@ -1,62 +1,89 @@
 //! Game rules. Controls what are valid moves.
+use std::collections::HashMap;
 
-use crate::hexagon::{
-    coordinate,
-    grid,
-};
+use crate::hexagon::{Grid, Cube};
+use super::model::*;
+use super::Player;
 
-use super::{
-    tree::{Move, BoardState, Consequence, Next},
-    Hold,
-    Player,
-    Players,
-    Mesh,
-};
+/// Function will build all boardstates from `start`  inserting them into the `states` map.
+/// If the boardstate already exists will skip that boardstate. This function has no
+/// horizon so it won't stop generating until the stack is empty.
+pub fn calculate_all_consequences(start: Board) -> HashMap<Board, Vec<Choice>> {
+    let mut stack: Vec<Board> = Vec::new();
+    let mut states: HashMap<Board, Vec<Choice>> = HashMap::new();
+    
+    // 1. Seed tree generation by pushing the first boardstate onto the stack.
+    stack.push(start);
 
-pub fn boardstate_consequences(boardstate: &BoardState) -> Vec<Next> {
+    // 2. Get the next board off the stack.
+    while let Some(board) = stack.pop() {
+        // 3. Check if the board hasn't been stored yet. If it has we skip.
+        if !states.contains_key(&board) {           
+            // 4. If not, we calculate the `Choice`s.
+            let choices = choices_from_board(&board);
+
+            // 5. We then push all the resulting boardstates onto the stack.
+            stack.extend(
+                choices
+                    .iter()
+                    .map(|choice| choice.consequence().board().to_owned())
+            );
+
+            // 6. Then we insert the boardstate and `Choice`s into the map.
+            states.insert(board, choices);
+        }
+    }
+
+    // 7. Return results of traversal.
+    states
+}
+
+fn choices_from_board(board: &Board) -> Vec<Choice> {
     let attacking_moves = all_legal_attacks_from(
-        boardstate.grid(), &boardstate.players().current()
+        board.grid(), &board.players().current()
     );
 
     // If there are no attacking moves, we quickly check if the player has won or lost.
     if attacking_moves.is_empty() {
-        if winner(boardstate) {            
-            return vec![Next::new(Move::Pass, Consequence::Winner)];
+        if winner(board) {            
+            return vec![Choice::new(Action::Pass, Consequence::Winner(board.to_owned()))];
         }
 
-        if loser(boardstate) {
-            let new_grid = grid_from_move(boardstate.grid(), Move::Pass);
-            let new_board = BoardState::new(
-                boardstate.players().remove_current(), new_grid
+        if loser(board) {
+            let new_grid = grid_from_move(board.grid(), Action::Pass);
+            let new_board = Board::new(
+                board.players().remove_current(), new_grid, 0
             );
-            return vec![Next::new(Move::Pass, Consequence::GameOver(new_board))];
+            return vec![Choice::new(Action::Pass, Consequence::GameOver(new_board))];
         }
     }
 
     // Otherwise we continue.
-    let mut moves: Vec<Next> = attacking_moves
+    let mut choices: Vec<Choice> = attacking_moves
         .into_iter()
         .map(|attack| {
-            let new_grid = grid_from_move(boardstate.grid(), attack);
-            let new_board = boardstate.update_grid(new_grid);
-            Next::new(attack, Consequence::Continue(new_board))
+            let new_grid = grid_from_move(board.grid(), attack);
+            // TODO: Add dice captures.
+            let new_board = Board::new(*board.players(), new_grid, 0);
+            Choice::new(attack, Consequence::Continue(new_board))
         })
         .collect();
 
     // And we tack on the passing move at the end.
-    let new_grid = grid_from_move(boardstate.grid(), Move::Pass);
-    let new_board = BoardState::new(boardstate.players().next(), new_grid);
-    moves.push(Next::new(Move::Pass, Consequence::TurnOver(new_board)));
+    let new_grid = grid_from_move(board.grid(), Action::Pass);
+    // TODO: Reinforcement calculations for the passing move.
+    let new_board = Board::new(board.players().next(), new_grid, 0);
+    choices.push(Choice::new(Action::Pass, Consequence::TurnOver(new_board)));
 
-    moves
+    choices
 }
 
 /// Iterates through the entire board to see if they are all owned by the current player
 /// in the `BoardState`. If so, we have a winner. This function should only be called when
 /// there are no attacking moves possible from the same `BoardState` being fed in.
-fn winner(boardstate: &BoardState) -> bool {
-    let player = boardstate.players().current();
-    boardstate
+fn winner(board: &Board) -> bool {
+    let player = board.players().current();
+    board
         .grid()
         .iter()
         .try_for_each(|ht| {
@@ -70,9 +97,9 @@ fn winner(boardstate: &BoardState) -> bool {
 }
 
 /// A repeat of `winner` above. Should be able to check for either within the same iter.
-fn loser(boardstate: &BoardState) -> bool {
-    let player = boardstate.players().current();
-    boardstate
+fn loser(board: &Board) -> bool {
+    let player = board.players().current();
+    board
         .grid()
         .iter()
         .try_for_each(|ht| {
@@ -86,7 +113,7 @@ fn loser(boardstate: &BoardState) -> bool {
 }
 
 /// Produces all legal attacking moves.
-fn all_legal_attacks_from(grid: &Mesh, player: &Player) -> Vec<Move> {
+fn all_legal_attacks_from(grid: &Grid<Hold>, player: &Player) -> Vec<Action> {
     grid.iter()
         .fold(Vec::new(), |mut moves, hex_tile| {
             //dbg!(hex_tile);
@@ -108,7 +135,7 @@ fn all_legal_attacks_from(grid: &Mesh, player: &Player) -> Vec<Move> {
                                         // We have an enemy tile. We count dice.
                                         if d.dice() < hold.dice() {
                                             // Player has more dice! 
-                                            Some(Move::Attack(coordinate, *neighbour))
+                                            Some(Action::Attack(coordinate, *neighbour))
                                         } else {
                                             // Player doesn't have enough dice.
                                             None
@@ -128,17 +155,17 @@ fn all_legal_attacks_from(grid: &Mesh, player: &Player) -> Vec<Move> {
 
 /// Generates a new grid that bears the consequences of the supplied movement. Doesn't
 /// check if the move is legal.
-fn grid_from_move(grid: &Mesh, movement: Move) -> Mesh {
+fn grid_from_move(grid: &Grid<Hold>, movement: Action) -> Grid<Hold> {
     match movement {
-        Move::Pass => grid.to_owned(),
-        Move::Attack(from, to) => attacking_move(grid, from, to),
+        Action::Pass => grid.to_owned(),
+        Action::Attack(from, to) => attacking_move(grid, from, to),
     }
 }
 
 /// An attacking move that removes all the dice except one from the `from` hexagon and
 /// places them minus one to the `to` tile. There is no error checking as this function
 /// expects correct parameters to be entered. Thus invalid data will cause a panic.
-fn attacking_move(grid: &Mesh, from: coordinate::Cube, to: coordinate::Cube) -> Mesh {
+fn attacking_move(grid: &Grid<Hold>, from: Cube, to: Cube) -> Grid<Hold> {
     let (to_hold, from_hold) = grid
         .fetch(&from)
         .map(|h| (
@@ -161,15 +188,17 @@ fn attacking_move(grid: &Mesh, from: coordinate::Cube, to: coordinate::Cube) -> 
 #[cfg(test)]
 mod test {
     use crate::hexagon::Rectangular;
+    use crate::game::Players;
     use super::*;
 
     #[test]
     fn winner_wins() {
         let players = Players::new(2);
-        let grid: Mesh = Rectangular::generate(100, 100, Hold::new(players.current(), 1))
-            .into();
+        let grid: Grid<Hold> = Rectangular::generate(
+            100, 100, Hold::new(players.current(), 1)
+        ).into();
 
-        let board = BoardState::new(players, grid);
+        let board = Board::new(players, grid, 0);
 
         assert!(winner(&board));
     }
@@ -177,10 +206,11 @@ mod test {
     #[test]
     fn loser_loses() {
         let players = Players::new(2);
-        let grid: Mesh = Rectangular::generate(100, 100, Hold::new(players.current(), 1))
-            .into();
+        let grid: Grid<Hold> = Rectangular::generate(
+            100, 100, Hold::new(players.current(), 1)
+        ).into();
 
-        let board = BoardState::new(players.next(), grid);
+        let board = Board::new(players.next(), grid, 0);
 
         assert!(loser(&board));
     }
@@ -213,12 +243,12 @@ mod test {
     fn test_turn_over() {
         let player2 = Player::new(2, 'B');
         let board = super::super::canned_2x2_start01();
-        let mut nexts = boardstate_consequences(&board);
+        let mut choices = choices_from_board(&board);
 
-        assert!(nexts.len() == 1);
-        let next = nexts.pop().unwrap();
-        assert!(*next.movement() == Move::Pass);
-        let consequence = next.consequence();
+        assert!(choices.len() == 1);
+        let choice = choices.pop().unwrap();
+        assert!(*choice.action() == Action::Pass);
+        let consequence = choice.consequence();
         match consequence {
             Consequence::TurnOver(board) => {
                 assert!(board.players().current() == player2);

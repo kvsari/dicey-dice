@@ -85,15 +85,12 @@ impl IntoCube for (i32, i32, i32) {
 /// conversion will always succeed unless we are exceeding the bounds of `i64`.
 impl IntoCube for (i32, i32) {
     fn cube(self) -> Result<Cube, FailsZeroConstraint> {
-        //let d_z = self.0 + self.1;
-        //Cube::new(self.0, self.1, -1 * d_z)
         Axial::from(self).cube()
     }
 }
 
 impl IntoCube for (u32, u32) {
     fn cube(self) -> Result<Cube, FailsZeroConstraint> {
-        //(self.0 as i32, self.1 as i32).cube()
         Axial::from((self.0 as i32, self.1 as i32)).cube()
     }
 }
@@ -128,7 +125,6 @@ impl IntoAxial for Axial {
 
 impl IntoCube for Axial {
     fn cube(self) -> Result<Cube, FailsZeroConstraint> {
-        //(self.x, self.y).cube()
         let y = self.column + self.row;
         Cube::construct(self.column, y.neg(), self.row)
     }
@@ -139,27 +135,6 @@ impl From<(i32, i32)> for Axial {
         Axial::new(tuple.0, tuple.1)
     }
 }
-
-/*
-impl ops::Add for Axial {
-    type Output = Axial;
-
-    fn add(self, other: Axial) -> Axial {
-        Axial {
-            column: self.column + other.column,
-            row: self.row + other.row,
-        }
-    }
-}
-
-impl ops::Add<Cube> for Axial {
-    type Output = Axial;
-
-    fn add(self, other: Cube) -> Axial {
-        self + other.axial()
-    }
-}
-*/
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct Cube {

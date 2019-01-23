@@ -1,10 +1,13 @@
 //! Player details handling. To simplify other code from having to calculate who the
 //! the next player is etc.
+//!
+//! This exists in its own module as it contains lots of code and doesn't depend on
+//! anything else within this project.
 use std::{fmt, mem};
 
-use derive_getters::Getters;
 use rand::Rng;
 use rand::distributions::Distribution;
+use derive_getters::Getters;
 
 const MAX_PLAYERS: usize = 8;
 
@@ -54,6 +57,8 @@ impl Players {
     /// If `players` is larger than `MAX_PLAYERS`, will truncate to `MAX_PLAYERS`. If
     /// `players` is less than 2, will use a minimum of 2.
     pub fn new(players: usize) -> Self {
+        let current = 0;
+        let mut playing = [None; MAX_PLAYERS];
         let players = if players > MAX_PLAYERS {
             MAX_PLAYERS
         } else if players < 2 {
@@ -61,12 +66,6 @@ impl Players {
         } else {
             players
         };
-
-        //let playing = players;
-        let current = 0;
-
-        //let mut roster = [State::default(); MAX_PLAYERS];
-        let mut playing = [None; MAX_PLAYERS];
 
         playing
             .iter_mut()

@@ -2,16 +2,16 @@
 
 extern crate dicey_dice_lib as lib;
 
-use lib::game;
+//use lib::game;
 
 fn main() {
     println!("Dicey Dice starting...");
 
     //let players = game::Players::new(2);
-    //let start = game::generate_random_grid(2, 2, players);
-    let start = game::canned_2x2_start01();
+    //let start = game::generate_random_board(2, 2, players);
+    //let start = game::canned_2x2_start01();
     
-    let mut tree = game::tree::grow_entire_tree_from(start);
+    //let mut tree = game::tree::grow_entire_tree_from(start);
 
     //println!("RAW GAME TREE: {:?}", &tree);
 
@@ -19,5 +19,5 @@ fn main() {
 
     //lib::console::handle_player_turn_input(&tree);
 
-    lib::console::session(&mut tree);
+    //lib::console::session(&mut tree);
 }
