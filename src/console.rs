@@ -3,37 +3,72 @@
 //! engine works. The intended UI will be something else.
 use std::io;
 
-use crate::game::tree::{Tree, Move, BoardState};
+use crate::game::model::{Tree, Choice, Board, Consequence};
 
-pub fn session(tree: &mut Tree) {
+/// Plays a session of the game and returns the entire traversal.
+pub fn session(tree: &Tree) -> Vec<Board> {
     println!("Starting game!");
 
-    while tree.game_on() {
-        if let Some(choice) = handle_player_turn_input(&tree) {
-            assert!(tree.choose(choice));
+    let mut traversal: Vec<Board> = vec![tree.start().clone()];
+
+    loop {
+        // 1. Print the state of the board.
+        let board = traversal.last().unwrap().to_owned();
+        println!("{}", &board);
+
+        // 2. Get all the options the current player has.
+        let curr_player = board.players().current().to_owned();
+        let available_choices = tree.fetch_choices(&board).unwrap();
+
+        // 3. If there is only one option left, it's a pass. Therefore we check if it's a
+        // win/lose or turn over consequence.
+        if available_choices.len() == 1 {
+            match available_choices[0].consequence() {
+                Consequence::TurnOver(next_board) => {
+                    println!(
+                        "Player {} can only pass. Moving to next player.",
+                        &curr_player,
+                    );
+                    traversal.push(next_board.to_owned());
+                    continue;
+                },
+                Consequence::GameOver(next_board) => {
+                    println!(
+                        "Player {} has been knocked out! Moving to next player.",
+                        &curr_player,
+                    );
+                    traversal.push(next_board.to_owned());
+                    continue;
+                },
+                Consequence::Winner(_) => {
+                    println!("Player {} has won!", &curr_player);
+                    break;
+                },
+                _ => panic!("Invalid consequence. Supposed to be a passing move."),
+            }
+        }
+
+        // 4. Otherwise we need to give our player their right to exercise choices.
+        if let Some(choice) = handle_player_turn_input(&available_choices) {
+            traversal.push(available_choices[choice].consequence().board().to_owned());
         } else {
-            println!("No winner.");
-            return;
+            println!("Player has opted to quit ending game. No winner determined.");
+            break;
         }
     }
 
-    let winner = tree.current_traversal().players().current();
-    println!("Winner is {}", &winner);
+    traversal
 }
 
-pub fn handle_player_turn_input(tree: &Tree) -> Option<usize> {
-    // 1. Print the state of the board.
-    println!("{}", tree.current_traversal());
-
-    // 2. Get all the options the player has.
-    let available_moves = tree.available_moves();
-    let move_count = available_moves.len();
-
-    // 3. Print it out as a nice list.
+/// The board must be a valid key within the tree. Otherwise panic.
+pub fn handle_player_turn_input(choices: &[Choice]) -> Option<usize> {
+    let choice_count = choices.len();
+    
+    // 1. Print it out as a nice list.
     println!("Movement options. Or 0 (Zero) to quit.");
-    print_moves_from_nexts(&available_moves);
+    print_actions_from_choices(&choices);
 
-    // 4. Get player input with 'q' for quitting.
+    // 2. Get player input with 'q' for quitting.
     let mut selection = String::new();
     let choice: usize = loop {
         io::stdin()
@@ -41,13 +76,13 @@ pub fn handle_player_turn_input(tree: &Tree) -> Option<usize> {
             .expect("Failed to readline.");
         println!("You selected: {}", &selection);
         
-        // 5. Validate.
+        // 3. Validate.
         match selection.trim().parse() {
             Ok(num) => {
-                if num <= move_count {
+                if num <= choice_count {
                     break num;
                 } else {
-                    println!("Number is too large. Choose from 0 to {}", &move_count);
+                    println!("Number is too large. Choose from 0 to {}", &choice_count);
                 }
             },
             Err(e) => println!("Invalid choice: {}. Try again (or 0 to quit).", &e),
@@ -55,7 +90,7 @@ pub fn handle_player_turn_input(tree: &Tree) -> Option<usize> {
         selection.clear();
     };
 
-    // 6. Return the move that was chosen.
+    // 4. Return the move that was chosen.
     if choice == 0 {
         None
     } else {
@@ -63,12 +98,13 @@ pub fn handle_player_turn_input(tree: &Tree) -> Option<usize> {
     }
 }
 
-pub fn print_moves_from_nexts(nexts: &[Move]) {
-    nexts
+pub fn print_actions_from_choices(choices: &[Choice]) {
+    choices
         .iter()
+        .map(|c| c.action())
         .enumerate()
-        .for_each(|(num, mv)| {
-            println!("{}. {}", num + 1, mv);
+        .for_each(|(num, act)| {
+            println!("{}. {}", num + 1, act);
         }); 
 }
 

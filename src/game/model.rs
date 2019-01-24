@@ -123,8 +123,19 @@ pub struct Tree {
     states: HashMap<Board, Vec<Choice>>,
 }
 
+impl Tree {
+    /// Convenience method to save on calling the getters.
+    pub fn fetch_choices(&self, board: &Board) -> Option<&[Choice]> {
+        self.states.get(board).map(|v| v.as_slice())
+    }
+}
+
 /// I just feel dirty doing `impl Tree { pub fn new(b: Board) -> Self ... ` for some reason.
 /// Depending on the size of the board, this could take a long time or cause an OOM error.
+///
+/// Come to think of it, `From` conversions should be relatively lightweight. This can be
+/// quite heavy. That's probably why it didn't feel right as a `new` constructor. This
+/// should be handled in a function call.
 impl From<Board> for Tree {
     fn from(b: Board) -> Self {
         Tree {

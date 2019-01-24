@@ -74,8 +74,8 @@ pub enum Shape {
     Unknown,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct Inner<T> {
+#[derive(Debug, Clone, Eq)]
+struct Inner<T: Copy + Clone + PartialEq + Eq + Hash> {
     hexes: Vec<(Cube, T)>,
     index: HashMap<Cube, usize>,
 }
@@ -118,6 +118,12 @@ impl<T: Copy + Clone + PartialEq + Eq + Hash> Default for Inner<T> {
             hexes: Vec::new(),
             index: HashMap::new(),
         }
+    }
+}
+
+impl<T: Copy + Clone + PartialEq + Eq + Hash> PartialEq for Inner<T> {
+    fn eq(&self, other: &Inner<T>) -> bool {
+        self.hexes == other.hexes
     }
 }
 
@@ -216,7 +222,7 @@ impl<T: Display + Copy + Clone + PartialEq + Eq + Hash> Display for Grid<T> {
                         let (col, row) = if col >= columns {
                             let row = row + 1;
                             let remainder = row % 2;
-                            if remainder == 0 || (remainder != 0 && row >= rows) {
+                            if remainder == 0 || row >= rows {
                                 output = format!("{}\n", &output);
                             } else {
                                 output = format!("{}\n  ", &output);
@@ -241,7 +247,7 @@ impl<T: Display + Copy + Clone + PartialEq + Eq + Hash> Display for Grid<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Rectangular<T> {
+pub struct Rectangular<T: Copy + Clone + Hash + PartialEq + Eq> {
     columns: u32,
     rows: u32,
     inner: Inner<T>,
@@ -283,11 +289,11 @@ impl<T: Copy + Clone + Hash + PartialEq + Eq> Rectangular<T> {
         Rectangular { columns, rows, inner }
     }
 
-    pub fn to_grid(self) -> Grid<T> {
+    pub fn to_grid(&self) -> Grid<T> {
         let shape = Shape::Rectangular { columns: self.columns, rows: self.rows };
         Grid {
             shape,
-            inner: self.inner,
+            inner: self.inner.to_owned(),
         }
     }
 }
