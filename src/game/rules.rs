@@ -9,12 +9,34 @@ use super::Player;
 /// If the boardstate already exists will skip that boardstate. This function has no
 /// horizon so it won't stop generating until the stack is empty.
 pub fn calculate_all_consequences(start: Board) -> HashMap<Board, Vec<Choice>> {
+    //depth_first_calc_consequences(start)
+    let (tree, stats) = breadth_first_calc_consequences(start);
+
+    stats
+        .iter()
+        .for_each(|stat| println!("{}", stat));
+
+    let totals = stats
+        .iter()
+        .fold(Totals::default(), |totals, stats| {
+            let n_totals = Totals::new(*stats.boards(), *stats.inserted());
+            totals + n_totals
+        });
+    println!("{}", &totals);
+    
+    tree
+}
+
+/// First implementation in calculating the entire game tree. Works by following each
+/// branch down to the end before exploring other possibilities.
+fn depth_first_calc_consequences(start: Board) -> HashMap<Board, Vec<Choice>> {
     let mut stack: Vec<Board> = Vec::new();
     let mut states: HashMap<Board, Vec<Choice>> = HashMap::new();
     
     // 1. Seed tree generation by pushing the first boardstate onto the stack.
     stack.push(start);
 
+    let mut count = 0;
     // 2. Get the next board off the stack.
     while let Some(board) = stack.pop() {
         // 3. Check if the board hasn't been stored yet. If it has we skip.
@@ -32,10 +54,62 @@ pub fn calculate_all_consequences(start: Board) -> HashMap<Board, Vec<Choice>> {
             // 6. Then we insert the boardstate and `Choice`s into the map.
             states.insert(board, choices);
         }
+        println!("Stack size: {}", &stack.len());
+        count += 1;
     }
+    println!("Looped {} times. States stored: {}", &count, &states.len());
 
     // 7. Return results of traversal.
     states
+}
+
+/// Calculate all consequences going layer by layer rather than following a single
+/// branch all the way to the end and then backtracking upwards. This means that each
+/// layer will grow exponentially large but it will be easier to see how the dataset
+/// grows geometrically as the grid size/players increase linearly.
+fn breadth_first_calc_consequences(
+    start: Board
+) -> (HashMap<Board, Vec<Choice>>, Vec<LayerStats>) {
+    let mut states: HashMap<Board, Vec<Choice>> = HashMap::new();
+    let mut current_layer: Option<Vec<Board>> = Some(vec![start]);
+    let mut layer_count: usize = 0;
+    let mut layer_stats: Vec<LayerStats> = Vec::new();
+    
+    loop {
+        let layer = current_layer.take().unwrap();
+        
+        if layer.is_empty() {
+            break;
+        }
+
+        // Prepare some stats.
+        layer_count += 1;
+        let layer_boards = layer.len();
+        let mut board_inserts = 0;
+        //
+        
+        let mut next_layer = Vec::new();
+        for board in layer {
+            if !states.contains_key(&board) {
+                let choices = choices_from_board(&board);
+                next_layer.extend(
+                    choices
+                        .iter()
+                        .map(|choice| choice.consequence().board().to_owned())
+                );
+                states.insert(board, choices);
+
+                // Prepare more stats.
+                board_inserts += 1;
+            }
+        }
+        current_layer = Some(next_layer);
+
+        // Record the stats.
+        layer_stats.push(LayerStats::new(layer_count, layer_boards, board_inserts));
+    }
+
+    (states, layer_stats)
 }
 
 fn choices_from_board(board: &Board) -> Vec<Choice> {
@@ -188,7 +262,7 @@ fn attacking_move(grid: &Grid<Hold>, from: Cube, to: Cube) -> Grid<Hold> {
 #[cfg(test)]
 mod test {
     use crate::hexagon::Rectangular;
-    use crate::game::Players;
+    use crate::game::*;
     use super::*;
 
     #[test]
@@ -256,4 +330,27 @@ mod test {
             _ => panic!("Invalid consequence."),
         }
     }
+
+    #[test]
+    fn breadth_first_on_canned_2x2_start01() {
+        let board = canned_2x2_start01();
+        let states = breadth_first_calc_consequences(board);
+        assert!(states.len() == 4);
+    }
+
+    #[test]
+    fn depth_first_on_canned_2x2_start01() {
+        let board = canned_2x2_start01();
+        let states = depth_first_calc_consequences(board);
+        assert!(states.len() == 4);
+    }
+
+    /*
+    #[test]
+    fn count_states_from_canned_2x2_start02() {
+        let board = canned_2x2_start02();
+        let states = calculate_all_consequences(board);
+        assert!(states.len() == 7);
+    }
+    */
 }

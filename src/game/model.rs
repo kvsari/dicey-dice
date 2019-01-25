@@ -1,6 +1,6 @@
 //! Game data structures
 use std::collections::HashMap;
-use std::fmt;
+use std::{fmt, ops};
 
 use derive_getters::Getters;
 
@@ -142,5 +142,97 @@ impl From<Board> for Tree {
             start: b.clone(),
             states: calculate_all_consequences(b),
         }
+    }
+}
+
+/// Some helpful information to gather during board generation to get an insight into
+/// memory usage and geometric tree growth.
+#[derive(Debug, Copy, Clone, Getters)]
+pub struct LayerStats {
+    /// How may layers deep this layer was at.
+    depth: usize,
+
+    /// The number of `Board`s (or states) that could be possible at this layer.
+    boards: usize,
+
+    /// The number of `Board`s that were unique and were inserted.
+    inserted: usize,
+}
+
+impl LayerStats {
+    pub fn new(depth: usize, boards: usize, inserted: usize) -> Self {
+        LayerStats { depth, boards, inserted }
+    }
+}
+
+impl fmt::Display for LayerStats {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "[ Depth: {}\t Boards: {}\t Inserted: {}\t Discarded: {}\t]",
+            &self.depth,
+            &self.boards,
+            &self.inserted,
+            self.boards - self.inserted,
+        )
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Totals {
+    boards: usize,
+    inserted: usize,
+}
+
+impl Totals {
+    pub fn new(boards: usize, inserted: usize) -> Self {
+        Totals { boards, inserted }
+    }
+}
+
+impl ops::Add for Totals {
+    type Output = Totals;
+    
+    fn add(self, rhs: Totals) -> Self::Output {
+        Totals {
+            boards: self.boards + rhs.boards,
+            inserted: self.inserted + rhs.inserted,
+        }
+    }
+}
+
+impl<'a> ops::Add<&'a Totals> for Totals {
+    type Output = Totals;
+    
+    fn add(self, rhs: &Totals) -> Self::Output {
+        Totals {
+            boards: self.boards + rhs.boards,
+            inserted: self.inserted + rhs.inserted,
+        }
+    }
+}
+
+impl Default for Totals {
+    fn default() -> Self {
+        Totals::new(0, 0)
+    }
+}
+
+impl fmt::Display for Totals {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let discarded = self.boards - self.inserted;
+        write!(
+            f,
+            " TOTALS = [ Boards Calculated: {}\t Inserted: {}\t Discarded: {}\t Efficiency:\
+             {:.2}% ]",
+            &self.boards,
+            &self.inserted,
+            &discarded,
+            if self.boards == 0 || self.inserted == 0 {
+                0_f64
+            } else {
+                self.inserted as f64 / self.boards as f64 * 100_f64
+            },
+        )
     }
 }
