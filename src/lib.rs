@@ -3,3 +3,4 @@
 pub mod hexagon;
 pub mod game;
 pub mod console;
+mod memorize;

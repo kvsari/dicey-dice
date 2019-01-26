@@ -91,7 +91,8 @@ fn breadth_first_calc_consequences(
         let mut next_layer = Vec::new();
         for board in layer {
             if !states.contains_key(&board) {
-                let choices = choices_from_board(&board);
+                //let choices = choices_from_board(&board);
+                let choices = choices_from_board_only_pass_at_end(&board);
                 next_layer.extend(
                     choices
                         .iter()
@@ -148,6 +149,52 @@ fn choices_from_board(board: &Board) -> Vec<Choice> {
     // TODO: Reinforcement calculations for the passing move.
     let new_board = Board::new(board.players().next(), new_grid, 0);
     choices.push(Choice::new(Action::Pass, Consequence::TurnOver(new_board)));
+
+    choices
+}
+
+/// Like `choices_from_board` above but does not add a passing move until there are no
+/// attacking moves left. This is to see if it reduces tree generation depth/breadth.
+fn choices_from_board_only_pass_at_end(board: &Board) -> Vec<Choice> {
+    let attacking_moves = all_legal_attacks_from(
+        board.grid(), &board.players().current()
+    );
+
+    let mut choices: Vec<Choice> = Vec::new();
+
+    // If there are no attacking moves, we quickly check if the player has won or lost.
+    if attacking_moves.is_empty() {
+        if winner(board) {            
+            return vec![Choice::new(Action::Pass, Consequence::Winner(board.to_owned()))];
+        }
+
+        if loser(board) {
+            let new_grid = grid_from_move(board.grid(), Action::Pass);
+            let new_board = Board::new(
+                board.players().remove_current(), new_grid, 0
+            );
+            return vec![Choice::new(Action::Pass, Consequence::GameOver(new_board))];
+        }
+
+        // Since there is not winner or knockout. We add a passing move.
+        let new_grid = grid_from_move(board.grid(), Action::Pass);
+        // TODO: Reinforcement calculations for the passing move.
+        let new_board = Board::new(board.players().next(), new_grid, 0);
+        choices.push(Choice::new(Action::Pass, Consequence::TurnOver(new_board)));
+    }
+
+    // Process attacking moves. This is functionally skipped if there are none.
+    choices.extend(
+        attacking_moves
+            .into_iter()
+            .map(|attack| {
+                let new_grid = grid_from_move(board.grid(), attack);
+                // TODO: Add dice captures.
+                let new_board = Board::new(*board.players(), new_grid, 0);
+                Choice::new(attack, Consequence::Continue(new_board))
+            })
+            .collect::<Vec<Choice>>()
+    );
 
     choices
 }
@@ -334,7 +381,7 @@ mod test {
     #[test]
     fn breadth_first_on_canned_2x2_start01() {
         let board = canned_2x2_start01();
-        let states = breadth_first_calc_consequences(board);
+        let (states, _stats) = breadth_first_calc_consequences(board);
         assert!(states.len() == 4);
     }
 
