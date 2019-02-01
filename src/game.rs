@@ -9,7 +9,7 @@ pub mod player;
 pub mod model;
 mod rules;
 
-pub use model::{Board, Tree};
+pub use model::{Board, Tree, Choice};
 pub use player::{Player, Players};
 use model::Hold;
 
