@@ -1,27 +1,81 @@
 //! Handle a game.
 use derive_getters::Getters;
 
-use crate::game::{self, Tree, Board, Players, Player, Choice};
+use crate::game::{self, Tree, Board, Players, Player, Choice, Consequence};
+
+/// State of game progression. Whether the game is on, over and what kind of over.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Progression {
+    PlayOn,
+    GameOverWinner(Player),
+    GameOverStalemate(Vec<Player>), // Easier to calculate than a draw...
+}
 
 /// The state of the session.
 #[derive(Debug, Clone)]
 pub struct State {
-    pub turn: usize,
-    pub board: Board,
-    pub choices: Vec<Choice>,
+    game: Progression,
+    traversal: Vec<(Board, Choice)>,
+    current_board: Board,
+    current_choices: Vec<Choice>,
 }
 
 impl State {
-    fn new(turn: usize, board: Board, choices: &[Choice]) -> Self {
+    fn new(game: Progression, /*turn: usize,*/ traversal: &[(Board, Choice)]) -> Self {
         State {
-            turn,
-            board,
-            choices: choices.into_iter().map(|c| *c).collect(),
+            game,
+            //turn,
+            traversal: traversal.into_iter().map(|(b, c)| (b.to_owned(), *c)).collect(),
         }
     }
 }
 
+/*
+/// Create the first `State` struct. Assumes the `Board` is the starting board that was
+/// used to generate the entire `Tree`.
+fn starting_state(board: &Board, tree: &Tree) -> Result<State, String> {
+    if let Some(choices) = tree.get(board) {
+        
+    } else {
+        Err("Board not present in tree.".to_owned())
+    }
+}
+ */
 
+/// Generate a `State` from a chosen `Board` consequence and the `Tree` where that `Board`
+/// must exist. Runs inside a loop skipping over states that have only one turn left in
+/// them except for Winning states. Uses some logic to detect draw states.
+fn state_from_consequence(board: &Board, tree: &Tree) -> State {
+    let mut traversal: Vec<(Board, Choice)> = Vec::new();
+    
+    //let choices = tree.get(board).unwrap();
+
+    let mut current_board = board.to_owned();
+    
+    loop {
+        let choices = tree.get(&current_board).unwrap();
+        // If there's only one choice left, it may be a passing/gameover/win move. Or the
+        // last available attack.
+        if choices.len() == 1 {
+            match choices[0].consequence() {
+                Consequence::Winner(next_board) => {
+                    // TODO: Generate a `State` with the right game progression.
+                },
+                Consequence::GameOver(next_board) => {
+                    // TODO: We need to iterate the progression.
+                },
+                Consequence::TurnOver(next_board) => {
+                    // TODO: We need to iterate the progression.
+                },
+                Consequence::Continue(next_board) => {
+                    // TODO: Generate a `State` with the single choice for progression.
+                },
+            }
+        }        
+
+        // If we make it here, there is a legit choice that needs to be made.
+    }
+}
     
 /// A game in progress. The `traversals` indicate how many turns have passed. Maintains
 /// all state of the game.
@@ -39,6 +93,7 @@ pub struct Session {
 
 impl Session {
     pub fn new(start: Board, tree: Tree) -> Self {
+        
         Session {
             traversal: vec![start],
             tree,
