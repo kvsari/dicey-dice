@@ -1,10 +1,11 @@
 //! Console entrypoint
+use std::error;
 
 extern crate dicey_dice as lib;
 
-use lib::game::{self, Tree};
+use lib::{session, game, console};
 
-fn main() {
+fn main() -> Result<(), Box<dyn error::Error + 'static>> {
     println!("Dicey Dice starting...");
 
     //let players = game::Players::new(2);
@@ -14,9 +15,17 @@ fn main() {
 
     println!("Using this board:\n{}", &start);
     
-    let tree: Tree = start.clone().into();
+    //let tree: Tree = start.clone().into();
 
     //lib::console::handle_player_turn_input(&tree, &start);
 
-    let _traversal = lib::console::session(&tree);
+    //let _traversal = lib::console::session(&tree);
+
+    let session = session::Setup::new()
+        .set_board(start)
+        .session()?;
+
+    console::play_session(session);
+
+    Ok(())
 }

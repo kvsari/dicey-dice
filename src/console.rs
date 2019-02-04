@@ -4,6 +4,44 @@
 use std::io;
 
 use crate::game::model::{Tree, Choice, Board, Consequence};
+use crate::session::{Progression, Session};
+
+pub fn play_session(mut session: Session) {
+    println!("Starting game session!");
+
+    loop {        
+        // 1. Print the state of the board.
+        // TODO: Print any progression too.
+        let state = session.current_turn().to_owned();
+        println!("{}", state.board());
+        
+        // 2. Check if we game on.
+        match state.game() {
+            Progression::PlayOn => (),
+            Progression::GameOverWinner(player) => {
+                println!("Game Over\nWinner is {}", &player);
+                break;
+            },
+            Progression::GameOverStalemate(_players) => {
+                // We won't bother printing the players yet. We have no code to detect
+                // stalemates.
+                println!("Game Over\nSTATELMATE");
+                break;
+            },
+        }
+
+        // 3. Get all the options the current player has.
+        let curr_player = state.board().players().current().to_owned();
+        let available_choices = state.choices();
+
+        if let Some(index) = handle_player_turn_input(available_choices.as_slice()) {
+            session.advance(&available_choices[index]).unwrap();
+        } else {
+            println!("Quitting game. No Winner.");
+            break;
+        }
+    }
+}
 
 /// Plays a session of the game and returns the entire traversal.
 pub fn session(tree: &Tree) -> Vec<Board> {

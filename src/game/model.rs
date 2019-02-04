@@ -104,7 +104,7 @@ impl Consequence {
 }
 
 /// A `Choice` which that is an `Action` with its `Consequence`.
-#[derive(Debug, Clone, Getters)]
+#[derive(Debug, Clone, PartialEq, Eq, Getters)]
 pub struct Choice {
     action: Action,
     consequence: Consequence,
