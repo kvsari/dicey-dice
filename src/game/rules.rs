@@ -27,6 +27,7 @@ pub fn calculate_all_consequences(start: Board) -> HashMap<Board, Vec<Choice>> {
     tree
 }
 
+/*
 /// First implementation in calculating the entire game tree. Works by following each
 /// branch down to the end before exploring other possibilities.
 fn depth_first_calc_consequences(start: Board) -> HashMap<Board, Vec<Choice>> {
@@ -62,6 +63,7 @@ fn depth_first_calc_consequences(start: Board) -> HashMap<Board, Vec<Choice>> {
     // 7. Return results of traversal.
     states
 }
+*/
 
 /// Calculate all consequences going layer by layer rather than following a single
 /// branch all the way to the end and then backtracking upwards. This means that each
@@ -233,6 +235,49 @@ fn loser(board: &Board) -> bool {
         .is_ok()
 }
 
+/// Check if the board is in a statelmate condition. This means that there is more than
+/// one player and no player can attack another player. Once a stalemate has been detected,
+/// then we can layer on calculation as to whether it's a draw or win by points.
+fn stalemate(board: &Board) -> bool {
+    let ok: Result<(), ()> = Ok(());
+    
+    board
+        .grid()
+        .iter()
+        .try_for_each(|ht| {            
+            let hold = *ht.data();
+            let coordinate = *ht.coordinate();
+            
+            coordinate
+                .three_neighbours()
+                .iter()
+                .try_for_each(|neighbour| {
+                    board
+                        .grid()
+                        .fetch(neighbour)
+                        .map_err(|_| ()) // throw away error.
+                        .and_then(|d| {
+                            // Check if the neighbour tile is held by another.
+                            if d.owner() != hold.owner() {
+                                // If so, we check if an attack is possible.
+                                if *d.dice() > 1 || *hold.dice() > 1 {
+                                    // An attack is possible. Short-circuit out.
+                                    Err(())
+                                } else {
+                                    // An attack is not possible. Continue scanning.
+                                    Ok(())
+                                }
+                            } else {
+                                // Neighbour tile is held by same owner. Attack impossible.
+                                Ok(())
+                            }
+                        })
+                        .or(ok) // No neighbour tile. Also impossible to attack.
+                })
+        })
+        .is_ok()
+}
+
 /// Produces all legal attacking moves.
 fn all_legal_attacks_from(grid: &Grid<Hold>, player: &Player) -> Vec<Action> {
     grid.iter()
@@ -385,12 +430,14 @@ mod test {
         assert!(states.len() == 4);
     }
 
+    /*
     #[test]
     fn depth_first_on_canned_2x2_start01() {
         let board = canned_2x2_start01();
         let states = depth_first_calc_consequences(board);
         assert!(states.len() == 4);
     }
+    */
 
     /*
     #[test]
@@ -399,5 +446,5 @@ mod test {
         let states = calculate_all_consequences(board);
         assert!(states.len() == 7);
     }
-    */
+     */
 }

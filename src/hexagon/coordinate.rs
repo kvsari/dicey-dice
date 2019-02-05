@@ -175,6 +175,18 @@ impl Cube {
             *self + DIRECTION[PointDirection::UpLeft as usize],
         ]
     }
+
+    /// As above but only returns the three neighbours that are Right, DownRight and
+    /// and DownLeft. This is used for certain scanning operations that need to cover
+    /// the entire board yet it's possible to do it by only looking at these three
+    /// adjacent tiles.
+    pub fn three_neighbours(&self) -> [Cube; 3] {
+        [
+            *self + DIRECTION[PointDirection::Right as usize],
+            *self + DIRECTION[PointDirection::DownRight as usize],
+            *self + DIRECTION[PointDirection::DownLeft as usize],
+        ]
+    }
 }
 
 impl IntoAxial for Cube {
