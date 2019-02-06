@@ -134,6 +134,18 @@ impl Players {
 
         new_self
     }
+
+    /// Return a copy of all players that are still playing.
+    pub fn playing(&self) -> Vec<Player> {
+        let mut players: Vec<Player> = Vec::new();
+        for i in 0..self.count {
+            if let Some(player) = self.playing[i] {
+                players.push(player);
+            }
+        }
+
+        players
+    }
 }
 
 impl Distribution<Player> for Players {

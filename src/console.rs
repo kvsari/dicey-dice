@@ -22,10 +22,8 @@ pub fn play_session(mut session: Session) {
                 println!("Game Over\nWinner is {}", &player);
                 break;
             },
-            Progression::GameOverStalemate(_players) => {
-                // We won't bother printing the players yet. We have no code to detect
-                // stalemates.
-                println!("Game Over\nSTATELMATE");
+            Progression::GameOverStalemate(players) => {
+                println!("Game Over\nSTATELMATE between players {:?}", &players);
                 break;
             },
         }

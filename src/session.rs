@@ -63,15 +63,18 @@ fn state_from_board(board: &Board, tree: &Tree) -> State {
         // last available attack.
         if choices.len() == 1 {
             match choices[0].consequence() {
-                Consequence::Winner(next_board) => {
-                    // TODO: Generate a `State` with the right game progression.
-                    break State::new(
-                        Progression::GameOverWinner(next_board.players().current()),
-                        traversal.as_slice(),
-                        next_board.to_owned(),
-                        choices,
-                    );
-                },
+                Consequence::Stalemate(next_board) => break State::new(
+                    Progression::GameOverStalemate(next_board.players().playing()),
+                    traversal.as_slice(),
+                    next_board.to_owned(),
+                    choices,
+                ),
+                Consequence::Winner(next_board) => break State::new(
+                    Progression::GameOverWinner(next_board.players().current()),
+                    traversal.as_slice(),
+                    next_board.to_owned(),
+                    choices,
+                ),
                 Consequence::GameOver(next_board) => {
                     // We need to iterate the progression.
                     traversal.push((current_board, choices[0].to_owned()));

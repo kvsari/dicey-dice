@@ -86,6 +86,7 @@ impl fmt::Display for Action {
 /// What follows from a `Move`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Consequence {
+    Stalemate(Board),
     Continue(Board),
     TurnOver(Board),
     GameOver(Board),
@@ -95,6 +96,7 @@ pub enum Consequence {
 impl Consequence {
     pub fn board(&self) -> &Board {
         match self {
+            Consequence::Stalemate(ref b) => b,
             Consequence::Continue(ref b) => b,
             Consequence::TurnOver(ref b) => b,
             Consequence::GameOver(ref b) => b,

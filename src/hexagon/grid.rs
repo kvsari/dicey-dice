@@ -81,6 +81,10 @@ struct Inner<T: Copy + Clone + PartialEq + Eq + Hash> {
 }
 
 impl<T: Copy + Clone + PartialEq + Eq + Hash> Inner<T> {
+    fn len(&self) -> usize {
+        self.hexes.len()
+    }
+    
     fn fetch<C: IntoCube>(&self, location: C) -> Result<&T, BadCoordinate> {
         let coordinate = location.cube()?;
         self.index
@@ -168,6 +172,10 @@ impl<T: Copy + Clone + PartialEq + Eq + Hash> Grid<T> {
 
     pub fn iter(&self) -> impl Iterator<Item = HexTile<T>> {
         self.inner.iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.inner.len()
     }
 
     /// Will clone a copy of the `Rectangular<T>` grid and iterate through all hexagons

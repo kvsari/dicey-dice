@@ -92,3 +92,23 @@ pub fn canned_3x3_start01() -> Board {
     let grid: Grid<Hold> = hexes.into_iter().collect();
     Board::new(players, grid.change_to_rectangle(3, 3), 0)
 }
+
+/// Board where player A is one move away from entering a stalemate with player B.
+pub fn canned_3x3_start02() -> Board {
+    let players = Players::new(2);
+    let player1 = Player::new(1, 'A');
+    let player2 = Player::new(2, 'B');
+    let hexes = vec![
+        (Cube::from((0, 0)), Hold::new(player2, 1)),
+        (Cube::from((1, 0)), Hold::new(player2, 1)),
+        (Cube::from((2, 0)), Hold::new(player1, 1)),
+        (Cube::from((0, 1)), Hold::new(player1, 2)),
+        (Cube::from((1, 1)), Hold::new(player1, 1)),
+        (Cube::from((2, 1)), Hold::new(player1, 1)),
+        (Cube::from((0, 2)), Hold::new(player1, 2)),
+        (Cube::from((1, 2)), Hold::new(player1, 5)),
+        (Cube::from((2, 0)), Hold::new(player1, 1)),
+    ];
+    let grid: Grid<Hold> = hexes.into_iter().collect();
+    Board::new(players, grid.change_to_rectangle(3, 3), 0)
+}

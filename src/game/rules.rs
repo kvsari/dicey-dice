@@ -122,10 +122,12 @@ fn choices_from_board(board: &Board) -> Vec<Choice> {
 
     // If there are no attacking moves, we quickly check if the player has won or lost.
     if attacking_moves.is_empty() {
+        // First we check if there's a winner. This will end the game if so.
         if winner(board) {            
             return vec![Choice::new(Action::Pass, Consequence::Winner(board.to_owned()))];
         }
 
+        // Next we check if the player has been knocked out.
         if loser(board) {
             let new_grid = grid_from_move(board.grid(), Action::Pass);
             let new_board = Board::new(
@@ -133,6 +135,16 @@ fn choices_from_board(board: &Board) -> Vec<Choice> {
             );
             return vec![Choice::new(Action::Pass, Consequence::GameOver(new_board))];
         }
+
+        // Lastly, we check if the game has been locked in a stalemate. This also ends
+        // the game but there is no winner. We haven't yet implemented scoring to determine
+        // a winner by points or a tie-breaker.
+        if stalemate(board) {
+            println!("STALEMATE FOUND: {}", &board);
+            return vec![
+                Choice::new(Action::Pass, Consequence::Stalemate(board.to_owned()))
+            ];
+        }   
     }
 
     // Otherwise we continue.
@@ -166,10 +178,12 @@ fn choices_from_board_only_pass_at_end(board: &Board) -> Vec<Choice> {
 
     // If there are no attacking moves, we quickly check if the player has won or lost.
     if attacking_moves.is_empty() {
+        // First we check if there's a winner. This will end the game if so.
         if winner(board) {            
             return vec![Choice::new(Action::Pass, Consequence::Winner(board.to_owned()))];
         }
 
+        // Next we check if the player has been knocked out.
         if loser(board) {
             let new_grid = grid_from_move(board.grid(), Action::Pass);
             let new_board = Board::new(
@@ -177,6 +191,16 @@ fn choices_from_board_only_pass_at_end(board: &Board) -> Vec<Choice> {
             );
             return vec![Choice::new(Action::Pass, Consequence::GameOver(new_board))];
         }
+
+        // Lastly, we check if the game has been locked in a stalemate. This also ends
+        // the game but there is no winner. We haven't yet implemented scoring to determine
+        // a winner by points or a tie-breaker.
+        if stalemate(board) {
+            println!("STALEMATE FOUND: {}", &board);
+            return vec![
+                Choice::new(Action::Pass, Consequence::Stalemate(board.to_owned()))
+            ];
+        }   
 
         // Since there is not winner or knockout. We add a passing move.
         let new_grid = grid_from_move(board.grid(), Action::Pass);
@@ -239,12 +263,16 @@ fn loser(board: &Board) -> bool {
 /// one player and no player can attack another player. Once a stalemate has been detected,
 /// then we can layer on calculation as to whether it's a draw or win by points.
 fn stalemate(board: &Board) -> bool {
-    let ok: Result<(), ()> = Ok(());
+    // Special case for boards consisting of a single or no hex tile. They cant be in
+    // stalemate at all, it's impossible.
+    if board.grid().len() < 2 {
+        return false;
+    }
     
     board
         .grid()
         .iter()
-        .try_for_each(|ht| {            
+        .try_for_each(|ht| {
             let hold = *ht.data();
             let coordinate = *ht.coordinate();
             
@@ -255,25 +283,31 @@ fn stalemate(board: &Board) -> bool {
                     board
                         .grid()
                         .fetch(neighbour)
-                        .map_err(|_| ()) // throw away error.
-                        .and_then(|d| {
-                            // Check if the neighbour tile is held by another.
-                            if d.owner() != hold.owner() {
-                                // If so, we check if an attack is possible.
-                                if *d.dice() > 1 || *hold.dice() > 1 {
-                                    // An attack is possible. Short-circuit out.
-                                    Err(())
+                        .map(|d| Some(d))
+                        .or(Ok(None))
+                        .and_then(|maybie| {
+                            if let Some(other) = maybie{
+                                // Check if the other tile is held by another.
+                                if other.owner() != hold.owner() {
+                                    // If so, we check if an attack is possible.
+                                    if *other.dice() > 1 || *hold.dice() > 1 {
+                                        // An attack is possible. Short-circuit out.
+                                        Err(())
+                                    } else {
+                                        // An attack is not possible. Continue scanning.
+                                        Ok(())
+                                    }
                                 } else {
-                                    // An attack is not possible. Continue scanning.
+                                    // Other tile is held by same owner. Attack impossible.
                                     Ok(())
                                 }
                             } else {
-                                // Neighbour tile is held by same owner. Attack impossible.
+                                // No neighbour tile. Impossible to attack.
                                 Ok(())
                             }
                         })
-                        .or(ok) // No neighbour tile. Also impossible to attack.
                 })
+
         })
         .is_ok()
 }
@@ -447,4 +481,152 @@ mod test {
         assert!(states.len() == 7);
     }
      */
+
+    #[test]
+    fn no_stalemate01() {
+        // Setup
+        let player1 = Player::new(1, 'A');
+        let players = Players::new(2);
+        let hexes: Vec<(Cube, Hold)> = vec![
+            ((0, 0).into(), Hold::new(player1, 2)),
+        ];
+        let grid: Grid<Hold> = hexes.into_iter().collect();
+        let grid = grid.change_to_rectangle(1, 1);
+        let board = Board::new(players, grid, 0);
+
+        // Test
+        assert!(!stalemate(&board));
+    }
+
+    #[test]
+    fn no_stalemate02() {
+        // Setup
+        let player1 = Player::new(1, 'A');
+        let player2 = Player::new(2, 'B');
+        let players = Players::new(2);
+        let hexes: Vec<(Cube, Hold)> = vec![
+            ((0, 0).into(), Hold::new(player1, 2)),
+            ((0, 1).into(), Hold::new(player2, 1)),
+        ];
+        let grid: Grid<Hold> = hexes.into_iter().collect();
+        let grid = grid.change_to_rectangle(2, 1);
+        let board = Board::new(players, grid, 0);
+
+        // Test
+        assert!(!stalemate(&board));
+    }
+
+    #[test]
+    fn no_stalemate03() {
+        // Setup
+        let player1 = Player::new(1, 'A');
+        let player2 = Player::new(2, 'B');
+        let players = Players::new(2);
+        let hexes: Vec<(Cube, Hold)> = vec![
+            ((0, 0).into(), Hold::new(player1, 2)),
+            ((0, 1).into(), Hold::new(player2, 2)),
+        ];
+        let grid: Grid<Hold> = hexes.into_iter().collect();
+        let grid = grid.change_to_rectangle(2, 1);
+        let board = Board::new(players, grid, 0);
+
+        // Test
+        assert!(!stalemate(&board));
+    }
+
+    #[test]
+    fn no_stalemate04() {
+        // Setup
+        let player1 = Player::new(1, 'A');
+        let player2 = Player::new(2, 'B');
+        let players = Players::new(2);
+        let hexes: Vec<(Cube, Hold)> = vec![
+            ((0, 0).into(), Hold::new(player1, 2)),
+            ((0, 1).into(), Hold::new(player2, 1)),
+            ((1, 0).into(), Hold::new(player1, 1)),
+            ((1, 1).into(), Hold::new(player2, 1)),
+        ];
+        let grid: Grid<Hold> = hexes.into_iter().collect();
+        let grid = grid.change_to_rectangle(2, 2);
+        let board = Board::new(players, grid, 0);
+
+        // Test
+        assert!(!stalemate(&board));
+    }
+
+    /// This is testing `canned_3x3_start02` and is related to `stalemate04` as that's
+    /// one of two possible moves either of which results in a stalemate.
+    #[test]
+    fn no_stalemate05() {
+        // Setup
+        let board = crate::game::canned_3x3_start02();
+
+        // Test
+        assert!(!stalemate(&board));
+    }
+
+
+    #[test]
+    fn stalemate01() {
+        // Setup
+        let player1 = Player::new(1, 'A');
+        let player2 = Player::new(2, 'B');
+        let players = Players::new(2);
+        let hexes: Vec<(Cube, Hold)> = vec![
+            ((0, 0).into(), Hold::new(player1, 1)),
+            ((0, 1).into(), Hold::new(player2, 1)),
+        ];
+        let grid: Grid<Hold> = hexes.into_iter().collect();
+        let grid = grid.change_to_rectangle(2, 1);
+        let board = Board::new(players, grid, 0);
+
+        // Test
+        assert!(stalemate(&board));
+    }
+
+    #[test]
+    fn stalemate02() {
+        // Setup
+        let player1 = Player::new(1, 'A');
+        let player2 = Player::new(2, 'B');
+        let players = Players::new(2);
+        let hexes: Vec<(Cube, Hold)> = vec![
+            ((0, 0).into(), Hold::new(player1, 1)),
+            ((0, 1).into(), Hold::new(player2, 1)),
+            ((1, 0).into(), Hold::new(player1, 1)),
+            ((1, 1).into(), Hold::new(player2, 1)),
+        ];
+        let grid: Grid<Hold> = hexes.into_iter().collect();
+        let grid = grid.change_to_rectangle(2, 2);
+        let board = Board::new(players, grid, 0);
+
+        // Test
+        assert!(stalemate(&board));
+    }
+
+    /// The result taking one of the two possible moves from `canned_3x3_start02`. Either
+    /// move results in a stalemate.
+    #[test]
+    fn stalemate04() {
+        // Setup
+        let player1 = Player::new(1, 'A');
+        let player2 = Player::new(2, 'B');
+        let players = Players::new(2);
+        let hexes: Vec<(Cube, Hold)> = vec![
+            (Cube::from((0, 0)), Hold::new(player1, 1)),
+            (Cube::from((1, 0)), Hold::new(player2, 1)),
+            (Cube::from((2, 0)), Hold::new(player1, 1)),
+            (Cube::from((0, 1)), Hold::new(player1, 1)),
+            (Cube::from((1, 1)), Hold::new(player1, 1)),
+            (Cube::from((2, 1)), Hold::new(player1, 1)),
+            (Cube::from((0, 2)), Hold::new(player1, 2)),
+            (Cube::from((1, 2)), Hold::new(player1, 5)),
+            (Cube::from((2, 0)), Hold::new(player1, 1)),
+        ];
+        let grid: Grid<Hold> = hexes.into_iter().collect();
+        let board = Board::new(players, grid.change_to_rectangle(3, 3), 0);
+
+        // Test
+        assert!(stalemate(&board));
+    }
 }
