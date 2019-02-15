@@ -9,7 +9,7 @@ use rand::Rng;
 use rand::distributions::Distribution;
 use derive_getters::Getters;
 
-const MAX_PLAYERS: usize = 8;
+const MAX_PLAYERS: usize = 6;
 
 /// Describes a player.
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Getters)]

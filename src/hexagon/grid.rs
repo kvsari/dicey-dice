@@ -178,6 +178,10 @@ impl<T: Copy + Clone + PartialEq + Eq + Hash> Grid<T> {
         self.inner.len()
     }
 
+    pub fn shape(&self) -> Shape {
+        self.shape
+    }
+
     /// Will clone a copy of the `Rectangular<T>` grid and iterate through all hexagons
     /// applying the sent function/closure. Function takes a reference to the coordinate
     /// that the 
