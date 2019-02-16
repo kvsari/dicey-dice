@@ -9,7 +9,7 @@ pub mod player;
 pub mod model;
 mod rules;
 
-pub use model::{Board, Tree, Choice, Consequence};
+pub use model::{Board, Tree, Choice, Action, Consequence};
 pub use player::{Player, Players};
 use model::Hold;
 
@@ -26,6 +26,34 @@ pub fn generate_random_grid(columns: u32, rows: u32, players: Players) -> Grid<H
 pub fn generate_random_board(columns: u32, rows: u32, players: Players) -> Board {
     let grid = generate_random_grid(columns, rows, players);
     Board::new(players, grid, 0)
+}
+
+/// Single line board more for testing purposes than actual play. Player 'A' is destined
+/// to lose.
+pub fn canned_2x1_start01() -> Board {
+    let players = Players::new(2);
+    let player1 = Player::new(1, 'A');
+    let player2 = Player::new(2, 'B');
+    let hexes = vec![
+        (Cube::from((0, 0)), Hold::new(player1, 2)),
+        (Cube::from((1, 0)), Hold::new(player2, 3)),
+    ];
+    let grid: Grid<Hold> = hexes.into_iter().collect();
+    Board::new(players, grid.change_to_rectangle(2, 1), 0)
+}
+
+/// Single line board more for testing purposes than actual play.
+pub fn canned_3x1_start01() -> Board {
+    let players = Players::new(2);
+    let player1 = Player::new(1, 'A');
+    let player2 = Player::new(2, 'B');
+    let hexes = vec![
+        (Cube::from((0, 0)), Hold::new(player1, 2)),
+        (Cube::from((1, 0)), Hold::new(player2, 3)),
+        (Cube::from((2, 0)), Hold::new(player1, 3)),
+    ];
+    let grid: Grid<Hold> = hexes.into_iter().collect();
+    Board::new(players, grid.change_to_rectangle(3, 1), 0)
 }
 
 /// Board where player A has no attacking moves and will lose.
@@ -87,7 +115,7 @@ pub fn canned_3x3_start01() -> Board {
         (Cube::from((2, 1)), Hold::new(player2, 3)),
         (Cube::from((0, 2)), Hold::new(player1, 2)),
         (Cube::from((1, 2)), Hold::new(player1, 5)),
-        (Cube::from((2, 0)), Hold::new(player2, 1)),
+        (Cube::from((2, 2)), Hold::new(player2, 1)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
     Board::new(players, grid.change_to_rectangle(3, 3), 0)
@@ -107,7 +135,7 @@ pub fn canned_3x3_start02() -> Board {
         (Cube::from((2, 1)), Hold::new(player1, 1)),
         (Cube::from((0, 2)), Hold::new(player1, 2)),
         (Cube::from((1, 2)), Hold::new(player1, 5)),
-        (Cube::from((2, 0)), Hold::new(player1, 1)),
+        (Cube::from((2, 2)), Hold::new(player1, 1)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
     Board::new(players, grid.change_to_rectangle(3, 3), 0)

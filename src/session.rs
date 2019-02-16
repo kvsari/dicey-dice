@@ -1,7 +1,7 @@
 //! Handle a game.
 use derive_getters::Getters;
 
-use crate::game::{self, Tree, Board, Players, Player, Choice, Consequence};
+use crate::game::{self, Tree, Board, Players, Player, Choice, Action, Consequence};
 
 /// State of game progression. Whether the game is on, over and what kind of over.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -62,44 +62,55 @@ fn state_from_board(board: &Board, tree: &Tree) -> State {
         // If there's only one choice left, it may be a passing/gameover/win move. Or the
         // last available attack.
         if choices.len() == 1 {
-            match choices[0].consequence() {
-                Consequence::Stalemate(next_board) => break State::new(
-                    Progression::GameOverStalemate(next_board.players().playing()),
-                    traversal.as_slice(),
-                    next_board.to_owned(),
-                    choices,
-                ),
-                Consequence::Winner(next_board) => break State::new(
-                    Progression::GameOverWinner(next_board.players().current()),
-                    traversal.as_slice(),
-                    next_board.to_owned(),
-                    choices,
-                ),
-                Consequence::GameOver(next_board) => {
-                    // We need to iterate the progression.
-                    traversal.push((current_board, choices[0].to_owned()));
-                    current_board = next_board.to_owned();
-                    continue;
-                },
-                Consequence::TurnOver(next_board) => {
-                    // We need to iterate the progression.
-                    traversal.push((current_board, choices[0].to_owned()));
-                    current_board = next_board.to_owned();
-                    continue;
-                },
-                Consequence::Continue(next_board) => {
-                    // Generate a `State` with the single choice for progression.
+            match choices[0].action() {
+                Action::Attack(_, _) => {
+                    // There is one last attack to make. We won't execute this choice
+                    // for the player as that'd be overstepping our bounds. Thus we jump
+                    // out of this loop.
                     break State::new(
                         Progression::PlayOn,
                         traversal.as_slice(),
-                        next_board.to_owned(),
+                        current_board,
                         choices,
                     );
+                },
+                Action::Pass => {
+                    // It'd be cumbersome to manually pass a move. The player can't "do"
+                    // anything. So let's just deal with it automatically.
+
+                    // In order to do this, we need to figure out the passing consequence.
+                    match choices[0].consequence() {
+                        Consequence::Stalemate(next_board) => break State::new(
+                            Progression::GameOverStalemate(next_board.players().playing()),
+                            traversal.as_slice(),
+                            next_board.to_owned(),
+                            choices,
+                        ),
+                        Consequence::Winner(next_board) => break State::new(
+                            Progression::GameOverWinner(next_board.players().current()),
+                            traversal.as_slice(),
+                            next_board.to_owned(),
+                            choices,
+                        ),
+                        Consequence::GameOver(next_board) => {
+                            // We need to iterate the progression.
+                            traversal.push((current_board, choices[0].to_owned()));
+                            current_board = next_board.to_owned();
+                            continue;
+                        },
+                        Consequence::TurnOver(next_board) => {
+                            // We need to iterate the progression.
+                            traversal.push((current_board, choices[0].to_owned()));
+                            current_board = next_board.to_owned();
+                            continue;
+                        },
+                        Consequence::Continue(_) => unreachable!(),
+                    }
                 },
             }
         }
 
-        // If we make it here, there is a legit choice that needs to be made.
+        // If we make it here, there are choices that need to be made.
         break State::new(
             Progression::PlayOn,
             traversal.as_slice(),
@@ -214,5 +225,76 @@ impl Setup {
 impl Default for Setup {
     fn default() -> Self {
         Setup::new()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::error;
+
+    use crate::{game, session};
+    
+    use super::*;
+
+    #[test]
+    fn state_from_board_2x1() -> Result<(), Box<dyn error::Error>> {
+        let start = game::canned_2x1_start01();
+        let s_grid = start.grid().to_owned();
+        let tree: game::Tree = start.clone().into();
+
+        let state = state_from_board(&start, &tree);
+        let f_grid = state.board().grid().to_owned();
+
+        assert!(s_grid == f_grid);
+
+        Ok(())
+    }
+
+    #[test]
+    fn state_from_board_2x2() -> Result<(), Box<dyn error::Error>> {
+        let start = game::canned_2x2_start01();
+        let s_grid = start.grid().to_owned();
+        let tree: game::Tree = start.clone().into();
+
+        let state = state_from_board(&start, &tree);
+        let f_grid = state.board().grid().to_owned();
+
+        assert!(s_grid == f_grid);
+
+        Ok(())
+    }
+
+    #[test]
+    fn start_grid_matches_2x1() -> Result<(), Box<dyn error::Error>> {
+        let start = game::canned_2x1_start01();
+        let s_grid = start.grid().to_owned();
+
+        let session = session::Setup::new()
+            .set_board(start)
+            .session()?;
+
+        let state = session.current_turn().to_owned();
+        let f_grid = state.board().grid().to_owned();
+
+        assert!(s_grid == f_grid);
+
+        Ok(())
+    }
+
+    #[test]
+    fn start_grid_matches_2x2() -> Result<(), Box<dyn error::Error>> {
+        let start = game::canned_2x2_start01();
+        let s_grid = start.grid().to_owned();
+
+        let session = session::Setup::new()
+            .set_board(start)
+            .session()?;
+
+        let state = session.current_turn().to_owned();
+        let f_grid = state.board().grid().to_owned();
+
+        assert!(s_grid == f_grid);
+
+        Ok(())
     }
 }

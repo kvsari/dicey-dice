@@ -140,7 +140,7 @@ fn choices_from_board(board: &Board) -> Vec<Choice> {
         // the game but there is no winner. We haven't yet implemented scoring to determine
         // a winner by points or a tie-breaker.
         if stalemate(board) {
-            println!("STALEMATE FOUND: {}", &board);
+            //println!("STALEMATE FOUND: {}", &board);
             return vec![
                 Choice::new(Action::Pass, Consequence::Stalemate(board.to_owned()))
             ];
@@ -196,7 +196,7 @@ fn choices_from_board_only_pass_at_end(board: &Board) -> Vec<Choice> {
         // the game but there is no winner. We haven't yet implemented scoring to determine
         // a winner by points or a tie-breaker.
         if stalemate(board) {
-            println!("STALEMATE FOUND: {}", &board);
+            //println!("STALEMATE FOUND: {}", &board);
             return vec![
                 Choice::new(Action::Pass, Consequence::Stalemate(board.to_owned()))
             ];
@@ -458,10 +458,19 @@ mod test {
     }
 
     #[test]
+    fn breadth_first_on_canned_2x1_start01() {
+        let board = canned_2x1_start01();
+        let (states, _stats) = breadth_first_calc_consequences(board.clone());
+        assert!(states.len() == 3);
+        assert!(states.contains_key(&board));
+    }
+
+    #[test]
     fn breadth_first_on_canned_2x2_start01() {
         let board = canned_2x2_start01();
-        let (states, _stats) = breadth_first_calc_consequences(board);
+        let (states, _stats) = breadth_first_calc_consequences(board.clone());
         assert!(states.len() == 4);
+        assert!(states.contains_key(&board));
     }
 
     /*

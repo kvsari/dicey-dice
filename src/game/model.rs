@@ -121,7 +121,7 @@ impl Choice {
 /// The game tree. Contains all moves possible from the starting state.
 #[derive(Debug, Clone, Getters)]
 pub struct Tree {
-    start: Board,
+    root: Board,
     states: HashMap<Board, Vec<Choice>>,
 }
 
@@ -141,7 +141,7 @@ impl Tree {
 impl From<Board> for Tree {
     fn from(b: Board) -> Self {
         Tree {
-            start: b.clone(),
+            root: b.clone(),
             states: calculate_all_consequences(b),
         }
     }
@@ -236,5 +236,33 @@ impl fmt::Display for Totals {
                 self.inserted as f64 / self.boards as f64 * 100_f64
             },
         )
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::error;
+
+    use crate::game;
+    use super::*;
+
+    #[test]
+    fn board_matches_board_2x1() -> Result<(), Box<dyn error::Error>> {
+        let start = game::canned_2x1_start01();
+        let tree: Tree = start.clone().into();
+
+        assert!(tree.root == start);
+
+        Ok(())
+    }
+    
+    #[test]
+    fn board_matches_board_2x2() -> Result<(), Box<dyn error::Error>> {
+        let start = game::canned_2x2_start01();
+        let tree: Tree = start.clone().into();
+
+        assert!(tree.root == start);
+
+        Ok(())
     }
 }

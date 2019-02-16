@@ -45,7 +45,7 @@ pub fn play_session(mut session: Session) {
 pub fn session(tree: &Tree) -> Vec<Board> {
     println!("Starting game!");
 
-    let mut traversal: Vec<Board> = vec![tree.start().clone()];
+    let mut traversal: Vec<Board> = vec![tree.root().clone()];
 
     loop {
         // 1. Print the state of the board.
