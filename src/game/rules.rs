@@ -286,13 +286,18 @@ fn stalemate(board: &Board) -> bool {
                         .map(|d| Some(d))
                         .or(Ok(None))
                         .and_then(|maybie| {
-                            if let Some(other) = maybie{
+                            if let Some(other) = maybie {
                                 // Check if the other tile is held by another.
                                 if other.owner() != hold.owner() {
                                     // If so, we check if an attack is possible.
                                     if *other.dice() > 1 || *hold.dice() > 1 {
-                                        // An attack is possible. Short-circuit out.
-                                        Err(())
+                                        // The rules state that even dice can't attack.
+                                        if *other.dice() != *hold.dice() {
+                                            // An attack is possible. Short-circuit out.
+                                            Err(())
+                                        } else {
+                                            Ok(())
+                                        }
                                     } else {
                                         // An attack is not possible. Continue scanning.
                                         Ok(())
@@ -532,7 +537,7 @@ mod test {
         let player2 = Player::new(2, 'B');
         let players = Players::new(2);
         let hexes: Vec<(Cube, Hold)> = vec![
-            ((0, 0).into(), Hold::new(player1, 2)),
+            ((0, 0).into(), Hold::new(player1, 1)),
             ((0, 1).into(), Hold::new(player2, 2)),
         ];
         let grid: Grid<Hold> = hexes.into_iter().collect();
@@ -634,6 +639,26 @@ mod test {
         ];
         let grid: Grid<Hold> = hexes.into_iter().collect();
         let board = Board::new(players, grid.change_to_rectangle(3, 3), 0);
+
+        // Test
+        assert!(stalemate(&board));
+    }
+
+    /// The the result of taking both possible moves from `canned_3x1_start01`.
+    #[test]
+    fn stalemate05() {
+        // Setup
+        let player1 = Player::new(1, 'A');
+        let player2 = Player::new(2, 'B');
+        let players = Players::new(2);
+        let hexes: Vec<(Cube, Hold)> = vec![
+            (Cube::from((0, 0)), Hold::new(player2, 2)),
+            (Cube::from((1, 0)), Hold::new(player1, 2)),
+            (Cube::from((2, 0)), Hold::new(player1, 1)),
+        ];
+
+        let grid: Grid<Hold> = hexes.into_iter().collect();
+        let board = Board::new(players, grid.change_to_rectangle(3, 1), 0);
 
         // Test
         assert!(stalemate(&board));
