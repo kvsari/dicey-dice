@@ -11,15 +11,18 @@ use super::errors::*;
 /// References a specific hex in a hex grid. Access is guarded to prevent mutation.
 #[derive(Debug, Copy, Clone)]
 pub struct HexTile<'a, T> {
+    index: usize,
     coordinate: &'a Cube,
     data: &'a T,
 }
 
 impl<'a, T> HexTile<'a, T> {
-    fn new(coordinate: &'a Cube, data: &'a T) -> Self {
-        HexTile {
-            coordinate, data
-        }
+    fn new(index: usize, coordinate: &'a Cube, data: &'a T) -> Self {
+        HexTile { index, coordinate, data }
+    }
+
+    pub fn index(&self) -> usize {
+        self.index
     }
 
     pub fn coordinate(&self) -> &Cube {
@@ -84,19 +87,25 @@ impl<T: Copy + Clone + PartialEq + Eq + Hash> Inner<T> {
     fn len(&self) -> usize {
         self.hexes.len()
     }
-    
-    fn fetch<C: IntoCube>(&self, location: C) -> Result<&T, BadCoordinate> {
+
+    fn fetch_index<C: IntoCube>(&self, location: C) -> Result<usize, BadCoordinate> {
         let coordinate = location.cube()?;
         self.index
             .get(&coordinate)
+            .map(|i| *i)
             .ok_or_else(|| NoHexAtCoordinate::from(coordinate).into())
-            .and_then(|i| Ok(&self.hexes[*i].1))
+    }
+
+    fn fetch<C: IntoCube>(&self, location: C) -> Result<&T, BadCoordinate> {
+        self.fetch_index(location)
+            .and_then(|i| Ok(&self.hexes[i].1))
     }
 
     fn iter(&self) -> impl Iterator<Item = HexTile<T>> {
         self.hexes
             .iter()
-            .map(|(c, d)| HexTile::new(c, d))
+            .enumerate()
+            .map(|(i, (c, d))| HexTile::new(i, c, d))
     }
 
     /// Will clone a copy of the `Inner<T>` grid and iterate through all hexagons
@@ -166,6 +175,10 @@ pub struct Grid<T: Copy + Clone + PartialEq + Eq + Hash> {
 }
 
 impl<T: Copy + Clone + PartialEq + Eq + Hash> Grid<T> {
+    pub fn fetch_index<C: IntoCube>(&self, location: C) -> Result<usize, BadCoordinate> {
+        self.inner.fetch_index(location)
+    }
+    
     pub fn fetch<C: IntoCube>(&self, location: C) -> Result<&T, BadCoordinate> {
         self.inner.fetch(location)
     }
