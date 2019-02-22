@@ -113,9 +113,9 @@ pub fn canned_3x3_start01() -> Board {
         (Cube::from((0, 1)), Hold::new(player2, 2)),
         (Cube::from((1, 1)), Hold::new(player1, 5)),
         (Cube::from((2, 1)), Hold::new(player2, 3)),
-        (Cube::from((0, 2)), Hold::new(player1, 2)),
-        (Cube::from((1, 2)), Hold::new(player1, 5)),
-        (Cube::from((2, 2)), Hold::new(player2, 1)),
+        (Cube::from((-1, 2)), Hold::new(player1, 2)),
+        (Cube::from((0, 2)), Hold::new(player1, 5)),
+        (Cube::from((1, 2)), Hold::new(player2, 1)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
     Board::new(players, grid.change_to_rectangle(3, 3), 0)
@@ -133,9 +133,9 @@ pub fn canned_3x3_start02() -> Board {
         (Cube::from((0, 1)), Hold::new(player1, 2)),
         (Cube::from((1, 1)), Hold::new(player1, 1)),
         (Cube::from((2, 1)), Hold::new(player1, 1)),
-        (Cube::from((0, 2)), Hold::new(player1, 2)),
-        (Cube::from((1, 2)), Hold::new(player1, 5)),
-        (Cube::from((2, 2)), Hold::new(player1, 1)),
+        (Cube::from((-1, 2)), Hold::new(player1, 2)),
+        (Cube::from((0, 2)), Hold::new(player1, 5)),
+        (Cube::from((1, 2)), Hold::new(player1, 1)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
     Board::new(players, grid.change_to_rectangle(3, 3), 0)
