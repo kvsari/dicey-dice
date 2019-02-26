@@ -63,7 +63,7 @@ fn state_from_board(board: &Board, tree: &Tree) -> State {
         // last available attack.
         if choices.len() == 1 {
             match choices[0].action() {
-                Action::Attack(_, _) => {
+                Action::Attack(_, _, _) => {
                     // There is one last attack to make. We won't execute this choice
                     // for the player as that'd be overstepping our bounds. Thus we jump
                     // out of this loop.

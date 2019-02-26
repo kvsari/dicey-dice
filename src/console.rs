@@ -29,7 +29,7 @@ pub fn play_session(mut session: Session) {
         }
 
         // 3. Get all the options the current player has.
-        let curr_player = state.board().players().current().to_owned();
+        //let curr_player = state.board().players().current().to_owned();
         let available_choices = state.choices();
 
         if let Some(index) = handle_player_turn_input(available_choices.as_slice()) {

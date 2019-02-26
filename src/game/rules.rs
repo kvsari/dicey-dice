@@ -5,6 +5,9 @@ use crate::hexagon::{Grid, Cube};
 use super::model::*;
 use super::Player;
 
+/// Maximum amount of dice a hexagon holding may have.
+const MAX_DICE: u8 = 5;
+
 /// Function will build all boardstates from `start`  inserting them into the `states` map.
 /// If the boardstate already exists will skip that boardstate. This function has no
 /// horizon so it won't stop generating until the stack is empty.
@@ -115,6 +118,7 @@ fn breadth_first_calc_consequences(
     (states, layer_stats)
 }
 
+/*
 fn choices_from_board(board: &Board) -> Vec<Choice> {
     let attacking_moves = all_legal_attacks_from(
         board.grid(), &board.players().current()
@@ -166,6 +170,7 @@ fn choices_from_board(board: &Board) -> Vec<Choice> {
 
     choices
 }
+*/
 
 /// Like `choices_from_board` above but does not add a passing move until there are no
 /// attacking moves left. This is to see if it reduces tree generation depth/breadth.
@@ -203,20 +208,23 @@ fn choices_from_board_only_pass_at_end(board: &Board) -> Vec<Choice> {
         }   
 
         // Since there is not winner or knockout. We add a passing move.
-        let new_grid = grid_from_move(board.grid(), Action::Pass);
-        // TODO: Reinforcement calculations for the passing move.
+        //let new_grid = grid_from_move(board.grid(), Action::Pass);
+        let new_grid = reinforce01(
+            board.grid(), board.players().current(), *board.captured_dice(),
+        );
         let new_board = Board::new(board.players().next(), new_grid, 0);
         choices.push(Choice::new(Action::Pass, Consequence::TurnOver(new_board)));
     }
 
     // Process attacking moves. This is functionally skipped if there are none.
+    let captured_dice = *board.captured_dice();
     choices.extend(
         attacking_moves
             .into_iter()
             .map(|attack| {
                 let new_grid = grid_from_move(board.grid(), attack);
-                // TODO: Add dice captures.
-                let new_board = Board::new(*board.players(), new_grid, 0);
+                let total_captured = captured_dice + attack.capturing();
+                let new_board = Board::new(*board.players(), new_grid, total_captured);
                 Choice::new(attack, Consequence::Continue(new_board))
             })
             .collect::<Vec<Choice>>()
@@ -317,7 +325,7 @@ fn stalemate(board: &Board) -> bool {
         .is_ok()
 }
 
-/// Produces all legal attacking moves.
+/// Produces all legal attacking moves with the amount of dice they would capture.
 fn all_legal_attacks_from(grid: &Grid<Hold>, player: &Player) -> Vec<Action> {
     grid.iter()
         .fold(Vec::new(), |mut moves, hex_tile| {
@@ -340,7 +348,9 @@ fn all_legal_attacks_from(grid: &Grid<Hold>, player: &Player) -> Vec<Action> {
                                         // We have an enemy tile. We count dice.
                                         if d.dice() < hold.dice() {
                                             // Player has more dice! 
-                                            Some(Action::Attack(coordinate, *neighbour))
+                                            Some(Action::Attack(
+                                                coordinate, *neighbour, *d.dice(),
+                                            ))
                                         } else {
                                             // Player doesn't have enough dice.
                                             None
@@ -363,7 +373,7 @@ fn all_legal_attacks_from(grid: &Grid<Hold>, player: &Player) -> Vec<Action> {
 fn grid_from_move(grid: &Grid<Hold>, movement: Action) -> Grid<Hold> {
     match movement {
         Action::Pass => grid.to_owned(),
-        Action::Attack(from, to) => attacking_move(grid, from, to),
+        Action::Attack(from, to, _) => attacking_move(grid, from, to),
     }
 }
 
@@ -384,6 +394,33 @@ fn attacking_move(grid: &Grid<Hold>, from: Cube, to: Cube) -> Grid<Hold> {
             from_hold
         } else if cube == &to {
             to_hold
+        } else {
+            hold
+        }
+    })
+}
+
+/// Sprinkle reinforcements for the current player on the grid returning a new grid. If
+/// there is no space left (a player hex cannot have more than five dice) then any
+/// remaining reinforcements are dropped.
+///
+/// The reinforcements will be doled out super simple. It will simply add them from the
+/// top leftmost of any player holdings downwards.
+fn reinforce01(grid: &Grid<Hold>, player: Player, reinforcements: u8) -> Grid<Hold> {
+    let mut reinforcements = reinforcements;
+    grid.fork_with(|_, hold| {
+        if hold.owner() == &player {
+            let dice = *hold.dice();
+            let diff = MAX_DICE - dice;
+            let add = if reinforcements > diff {
+                reinforcements -= diff;
+                diff
+            } else {
+                let diff = reinforcements;
+                reinforcements = 0;
+                diff
+            };
+            Hold::new(player, dice + add)
         } else {
             hold
         }

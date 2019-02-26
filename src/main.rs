@@ -8,9 +8,9 @@ use lib::{session, game, console};
 fn main() -> Result<(), Box<dyn error::Error + 'static>> {
     println!("Dicey Dice starting...");
 
-    let players = game::Players::new(2);
-    let start = game::generate_random_board(3, 3, players);
-    //let start = game::canned_2x2_start01();
+    //let players = game::Players::new(2);
+    //let start = game::generate_random_board(2, 2, players);
+    let start = game::canned_2x2_start04();
     //let start = game::canned_3x3_start01();
 
     println!("Using this board:\n{}", &start);

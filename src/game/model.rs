@@ -10,6 +10,7 @@ use super::rules::calculate_all_consequences;
 
 pub type FromHex = Cube;
 pub type ToHex = Cube;
+pub type Capturing = u8;
 
 /// A territorial hold on a particular tile.
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Getters)]
@@ -46,11 +47,11 @@ impl Default for Hold {
 pub struct Board {
     players: Players,
     grid: Grid<Hold>,
-    captured_dice: u32,
+    captured_dice: u8,
 }
 
 impl Board {
-    pub fn new(players: Players, grid: Grid<Hold>, captured_dice: u32) -> Self {
+    pub fn new(players: Players, grid: Grid<Hold>, captured_dice: u8) -> Self {
         Board { players, grid, captured_dice }
     }
 }
@@ -70,14 +71,26 @@ impl fmt::Display for Board {
 /// A legal player action that will advance the game state.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Action {
-    Attack(FromHex, ToHex),
+    Attack(FromHex, ToHex, Capturing),
     Pass,
+}
+
+impl Action {
+    /// Returns the amount of dice that will be captured by the move.
+    pub fn capturing(&self) -> u8 {
+        match self {
+            Action::Attack(_, _, c) => *c,
+            _ => 0,
+        }
+    }
 }
 
 impl fmt::Display for Action {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Action::Attack(from, to) => write!(f, "Attack from {} into {}", from, to),
+            Action::Attack(from, to, capturing) => {
+                write!(f, "Attack from {} into {} capturing {} dice.", from, to, capturing)
+            },
             Action::Pass => write!(f, "Pass turn."),
         }
     }
