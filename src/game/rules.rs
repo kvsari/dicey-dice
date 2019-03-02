@@ -508,6 +508,7 @@ mod test {
 
     #[test]
     fn no_stalemate01() {
+        /*
         // Setup
         let player1 = Player::new(1, 'A');
         let players = Players::new(2);
@@ -519,7 +520,8 @@ mod test {
         let board = Board::new(players, grid, 0);
 
         // Test
-        assert!(!stalemate(&board));
+        */
+        assert!(!stalemate(&canned_1x1_start()));
     }
 
     #[test]

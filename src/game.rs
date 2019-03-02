@@ -9,7 +9,7 @@ pub mod player;
 pub mod model;
 mod rules;
 
-pub use model::{Board, Tree, Choice, Action, Consequence};
+pub use model::{Board, Tree, Choice, Action, Consequence, Score};
 pub use player::{Player, Players};
 use model::Hold;
 
@@ -25,6 +25,18 @@ pub fn generate_random_grid(columns: u32, rows: u32, players: Players) -> Grid<H
 
 pub fn generate_random_board(columns: u32, rows: u32, players: Players) -> Board {
     let grid = generate_random_grid(columns, rows, players);
+    Board::new(players, grid, 0)
+}
+
+/// Used for testing edge cases more than anything else.
+pub fn canned_1x1_start() -> Board {
+    let player1 = Player::new(1, 'A');
+    let players = Players::new(2);
+    let hexes: Vec<(Cube, Hold)> = vec![
+        ((0, 0).into(), Hold::new(player1, 2)),
+    ];
+    let grid: Grid<Hold> = hexes.into_iter().collect();
+    let grid = grid.change_to_rectangle(1, 1);
     Board::new(players, grid, 0)
 }
 

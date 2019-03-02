@@ -118,14 +118,32 @@ impl Consequence {
     }
 }
 
+/// Scoring for each move. Present when AI calculations have been made.
+#[derive(Debug, Copy, Clone, PartialEq, Getters)]
+pub struct Score {
+    /// The endstate board idealness. 1 means a win, 0 means loss and anything
+    /// in between means a stalemate of different degrees.
+    destination: f64,
+
+    /// How far away yet still that endstate board is. The closer the better.
+    distance: usize,
+}
+
+impl Score {
+    pub fn new(destination: f64, distance: usize) -> Self {
+        Score { destination, distance }
+    }
+}
+
 /// A `Choice` which that is an `Action` with its `Consequence`.
-#[derive(Debug, Clone, PartialEq, Eq, Getters)]
+#[derive(Debug, Clone, PartialEq, Getters)]
 pub struct Choice {
     action: Action,
     consequence: Consequence,
 
     /// Filled in AI phase when scoring each move. 
-    score: Option<f64>,
+    score: Option<Score>,
+    
 }
 
 impl Choice {
@@ -133,7 +151,7 @@ impl Choice {
         Choice { action, consequence, score: None }
     }
 
-    pub fn set_score(&mut self, score: f64) {
+    pub fn set_score(&mut self, score: Score) {
         self.score = Some(score)
     }
 }
@@ -149,6 +167,11 @@ impl Tree {
     /// Convenience method to save on calling the getters.
     pub fn fetch_choices(&self, board: &Board) -> Option<&[Choice]> {
         self.states.get(board).map(|v| v.as_slice())
+    }
+
+    /// Internal use convenience method that auto unwraps too.
+    pub (crate) fn mut_fetch_choices_unchecked(&mut self, board: &Board) -> &mut [Choice] {
+        self.states.get_mut(board).unwrap().as_mut_slice()
     }
 }
 
