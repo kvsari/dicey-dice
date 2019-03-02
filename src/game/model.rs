@@ -123,11 +123,18 @@ impl Consequence {
 pub struct Choice {
     action: Action,
     consequence: Consequence,
+
+    /// Filled in AI phase when scoring each move. 
+    score: Option<f64>,
 }
 
 impl Choice {
     pub fn new(action: Action, consequence: Consequence) -> Self {
-        Choice { action, consequence }
+        Choice { action, consequence, score: None }
+    }
+
+    pub fn set_score(&mut self, score: f64) {
+        self.score = Some(score)
     }
 }
 
