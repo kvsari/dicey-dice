@@ -3,7 +3,7 @@
 //! engine works. The intended UI will be something else.
 use std::io;
 
-use crate::game::model::{Tree, Choice, Board, Consequence};
+use crate::game::{Tree, Choice, Board, Consequence};
 use crate::session::{Progression, Session};
 
 pub fn play_session(mut session: Session) {

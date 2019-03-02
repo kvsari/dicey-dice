@@ -30,44 +30,6 @@ pub fn calculate_all_consequences(start: Board) -> HashMap<Board, Vec<Choice>> {
     tree
 }
 
-/*
-/// First implementation in calculating the entire game tree. Works by following each
-/// branch down to the end before exploring other possibilities.
-fn depth_first_calc_consequences(start: Board) -> HashMap<Board, Vec<Choice>> {
-    let mut stack: Vec<Board> = Vec::new();
-    let mut states: HashMap<Board, Vec<Choice>> = HashMap::new();
-    
-    // 1. Seed tree generation by pushing the first boardstate onto the stack.
-    stack.push(start);
-
-    let mut count = 0;
-    // 2. Get the next board off the stack.
-    while let Some(board) = stack.pop() {
-        // 3. Check if the board hasn't been stored yet. If it has we skip.
-        if !states.contains_key(&board) {           
-            // 4. If not, we calculate the `Choice`s.
-            let choices = choices_from_board(&board);
-
-            // 5. We then push all the resulting boardstates onto the stack.
-            stack.extend(
-                choices
-                    .iter()
-                    .map(|choice| choice.consequence().board().to_owned())
-            );
-
-            // 6. Then we insert the boardstate and `Choice`s into the map.
-            states.insert(board, choices);
-        }
-        println!("Stack size: {}", &stack.len());
-        count += 1;
-    }
-    println!("Looped {} times. States stored: {}", &count, &states.len());
-
-    // 7. Return results of traversal.
-    states
-}
-*/
-
 /// Calculate all consequences going layer by layer rather than following a single
 /// branch all the way to the end and then backtracking upwards. This means that each
 /// layer will grow exponentially large but it will be easier to see how the dataset
@@ -208,8 +170,7 @@ fn choices_from_board_only_pass_at_end(board: &Board) -> Vec<Choice> {
         }   
 
         // Since there is not winner or knockout. We add a passing move.
-        //let new_grid = grid_from_move(board.grid(), Action::Pass);
-        let new_grid = reinforce01(
+        let new_grid = reinforce02(
             board.grid(), board.players().current(), *board.captured_dice(),
         );
         let new_board = Board::new(board.players().next(), new_grid, 0);
@@ -400,7 +361,7 @@ fn attacking_move(grid: &Grid<Hold>, from: Cube, to: Cube) -> Grid<Hold> {
     })
 }
 
-/// Sprinkle reinforcements for the current player on the grid returning a new grid. If
+/// Add reinforcements for the current player on the grid returning a new grid. If
 /// there is no space left (a player hex cannot have more than five dice) then any
 /// remaining reinforcements are dropped.
 ///
@@ -408,6 +369,36 @@ fn attacking_move(grid: &Grid<Hold>, from: Cube, to: Cube) -> Grid<Hold> {
 /// top leftmost of any player holdings downwards.
 fn reinforce01(grid: &Grid<Hold>, player: Player, reinforcements: u8) -> Grid<Hold> {
     let mut reinforcements = reinforcements;
+    grid.fork_with(|_, hold| {
+        if hold.owner() == &player {
+            let dice = *hold.dice();
+            let diff = MAX_DICE - dice;
+            let add = if reinforcements > diff {
+                reinforcements -= diff;
+                diff
+            } else {
+                let diff = reinforcements;
+                reinforcements = 0;
+                diff
+            };
+            Hold::new(player, dice + add)
+        } else {
+            hold
+        }
+    })
+}
+
+/// Add reinforcements minus 1 for the current player on the grid returning a new grid. If
+/// there is no space left (a player hex cannot have more than five dice) then any
+/// remaining reinforcements are dropped.
+///
+/// The reinforcements will be doled out super simple. It will simply add them from the
+/// top leftmost of any player holdings downwards.
+fn reinforce02(grid: &Grid<Hold>, player: Player, reinforcements: u8) -> Grid<Hold> {
+    let mut reinforcements = reinforcements
+        .checked_sub(1)
+        .unwrap_or(0);
+
     grid.fork_with(|_, hold| {
         if hold.owner() == &player {
             let dice = *hold.dice();
@@ -485,7 +476,7 @@ mod test {
     fn test_turn_over() {
         let player2 = Player::new(2, 'B');
         let board = super::super::canned_2x2_start01();
-        let mut choices = choices_from_board(&board);
+        let mut choices = choices_from_board_only_pass_at_end(&board);
 
         assert!(choices.len() == 1);
         let choice = choices.pop().unwrap();
@@ -514,24 +505,6 @@ mod test {
         assert!(states.len() == 4);
         assert!(states.contains_key(&board));
     }
-
-    /*
-    #[test]
-    fn depth_first_on_canned_2x2_start01() {
-        let board = canned_2x2_start01();
-        let states = depth_first_calc_consequences(board);
-        assert!(states.len() == 4);
-    }
-    */
-
-    /*
-    #[test]
-    fn count_states_from_canned_2x2_start02() {
-        let board = canned_2x2_start02();
-        let states = calculate_all_consequences(board);
-        assert!(states.len() == 7);
-    }
-     */
 
     #[test]
     fn no_stalemate01() {
