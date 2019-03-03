@@ -14,12 +14,12 @@ struct Direction {
     route: usize,
 
     /// On rewinding, we store the scores.
-    scores: Option<HashMap<Player, f64>>,
+    scores: HashMap<Player, f64>,
 }
 
 impl Direction {
     pub fn new(board: Board, route: usize) -> Self {
-        Direction { board, route, scores: None }
+        Direction { board, route, scores: HashMap::new() }
     }
 }
 
@@ -70,7 +70,65 @@ pub fn score_tree(tree: &mut Tree) {
         }
     }
 
-    // TODO: Finish me!
+    let direction = Direction::new(board, 0);
+    traversal.push(direction);
+
+    while let Some(ref mut direction) = traversal.last_mut() {
+        let mut choices = tree.mut_fetch_choices_unchecked(&direction.board);
+        let route = direction.route;
+        let curr_player = *direction.board.players().current();
+        if choices.len() > route {
+            match choices[route].consequence() {
+                Consequence::Stalemate(ref board) => {
+                    // Game could end here. It's not an ideal end.
+                    let scores = score_board01(board);
+                    let score = Score::new(*scores.get(&curr_player).unwrap(), 0);
+                    choices[route].set_score(score);
+                    //drop(choices);
+                    scores
+                        .into_iter()
+                        .for_each(|(player, dest)| {
+                            let new_score = Score::new(dest, 0);
+                            if let Some(existing_score) = *direction.scores.get(&player) {
+                                if existing_score < new_score {
+                                    direction.scores.insert(new_score);
+                                }
+                            } else {
+                                direction.scores.insert(new_score)
+                            }
+                        });
+                    direction.route += 1;
+                    //drop(direction);
+                    continue;
+                },
+                Consequence::GameOver(ref board) => {
+                    // It is game over for the current player. But the game may continue.
+                    let score = Score::new(0_f64, 0);
+                    choices[route].set_score(score);
+                    //drop(choices);
+                    direction.scores.insert(curr_player, score); // need to check for existing otherwise risk clobbering a better route.
+                    drop(direction);
+                    traversal.push(Direction::new(board.to_owned(), 0));
+                    continue;
+                },
+                Consequence::Winner(ref board) => {
+                    // Game could end here. Give the best score and move to the next branch.
+                    let score = Score::new(1_f64, 0);
+                    choices[route].set_score(score);
+                    //drop(choices);
+                    direction.scores.insert(curr_player, score);
+                    direction.route += 1;
+                    //drop(direction);
+                    continue;
+                },
+                Consequence::Continue(ref board) | Consequence::TurnOver(ref board) => {
+                    
+                },
+            }
+        } else {
+            
+        }
+    }
 }
 
 #[cfg(test)]

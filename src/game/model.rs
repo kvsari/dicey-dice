@@ -1,6 +1,6 @@
 //! Game data structures
 use std::collections::HashMap;
-use std::{fmt, ops};
+use std::{fmt, ops, cmp};
 
 use derive_getters::Getters;
 
@@ -132,6 +132,30 @@ pub struct Score {
 impl Score {
     pub fn new(destination: f64, distance: usize) -> Self {
         Score { destination, distance }
+    }
+}
+
+/// Custom impl since if the destination scores are equal, a smaller distance is better.
+impl cmp::PartialOrd for Score {
+    fn partian_cmp(&self, other: &Score) -> Option<cmp::Ordering> {
+        if let Some(ordering) = self.destination.partial_cmp(&other.destination) {
+            let ordering = match ordering {
+                cmp::Ordering::Equal => {
+                    // Closer is better. Thus here we invert.
+                    if self.distance > other.distance {
+                        cmp::Ordering::Less
+                    } else if self.distance < other.distance {
+                        cmp::Ordering::Greater
+                    } else {
+                        cmp::Ordering::Equal
+                    }
+                },
+                _ => ordering,
+            };
+            Some(ordering)
+        } else {
+            None
+        }
     }
 }
 

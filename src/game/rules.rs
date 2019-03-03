@@ -508,19 +508,6 @@ mod test {
 
     #[test]
     fn no_stalemate01() {
-        /*
-        // Setup
-        let player1 = Player::new(1, 'A');
-        let players = Players::new(2);
-        let hexes: Vec<(Cube, Hold)> = vec![
-            ((0, 0).into(), Hold::new(player1, 2)),
-        ];
-        let grid: Grid<Hold> = hexes.into_iter().collect();
-        let grid = grid.change_to_rectangle(1, 1);
-        let board = Board::new(players, grid, 0);
-
-        // Test
-        */
         assert!(!stalemate(&canned_1x1_start()));
     }
 
