@@ -361,6 +361,7 @@ fn attacking_move(grid: &Grid<Hold>, from: Cube, to: Cube) -> Grid<Hold> {
     })
 }
 
+/*
 /// Add reinforcements for the current player on the grid returning a new grid. If
 /// there is no space left (a player hex cannot have more than five dice) then any
 /// remaining reinforcements are dropped.
@@ -387,6 +388,7 @@ fn reinforce01(grid: &Grid<Hold>, player: Player, reinforcements: u8) -> Grid<Ho
         }
     })
 }
+*/
 
 /// Add reinforcements minus 1 for the current player on the grid returning a new grid. If
 /// there is no space left (a player hex cannot have more than five dice) then any

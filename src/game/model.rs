@@ -137,7 +137,7 @@ impl Score {
 
 /// Custom impl since if the destination scores are equal, a smaller distance is better.
 impl cmp::PartialOrd for Score {
-    fn partian_cmp(&self, other: &Score) -> Option<cmp::Ordering> {
+    fn partial_cmp(&self, other: &Score) -> Option<cmp::Ordering> {
         if let Some(ordering) = self.destination.partial_cmp(&other.destination) {
             let ordering = match ordering {
                 cmp::Ordering::Equal => {

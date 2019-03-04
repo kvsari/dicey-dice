@@ -54,6 +54,32 @@ pub fn canned_2x1_start01() -> Board {
     Board::new(players, grid.change_to_rectangle(2, 1), 0)
 }
 
+/// Game is an instant stalemate.
+pub fn canned_2x1_start02() -> Board {
+    let players = Players::new(2);
+    let player1 = Player::new(1, 'A');
+    let player2 = Player::new(2, 'B');
+    let hexes = vec![
+        (Cube::from((0, 0)), Hold::new(player1, 1)),
+        (Cube::from((1, 0)), Hold::new(player2, 1)),
+    ];
+    let grid: Grid<Hold> = hexes.into_iter().collect();
+    Board::new(players, grid.change_to_rectangle(2, 1), 0)
+}
+
+/// Game is a clear winner for player 'A'
+pub fn canned_2x1_start03() -> Board {
+    let players = Players::new(2);
+    let player1 = Player::new(1, 'A');
+    let player2 = Player::new(2, 'B');
+    let hexes = vec![
+        (Cube::from((0, 0)), Hold::new(player1, 5)),
+        (Cube::from((1, 0)), Hold::new(player1, 5)),
+    ];
+    let grid: Grid<Hold> = hexes.into_iter().collect();
+    Board::new(players, grid.change_to_rectangle(2, 1), 0)
+}
+
 /// Single line board more for testing purposes than actual play.
 pub fn canned_3x1_start01() -> Board {
     let players = Players::new(2);
