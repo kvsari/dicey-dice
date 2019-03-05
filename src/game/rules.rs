@@ -664,4 +664,20 @@ mod test {
         // Test
         assert!(stalemate(&board));
     }
+
+    #[test]
+    fn consequences_3x1_2player() {
+        let board = canned_3x1_start01();
+        let consequences = calculate_all_consequences(board.clone());
+
+        assert!(consequences.len() == 8);
+    }
+
+    #[test]
+    fn consequences_3x1_3player() {
+        let board = canned_3x1_start05();
+        let consequences = calculate_all_consequences(board.clone());
+
+        assert!(consequences.len() == 8);
+    }
 }

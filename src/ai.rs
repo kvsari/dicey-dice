@@ -105,6 +105,7 @@ pub fn score_tree(tree: &mut Tree) {
                 },
                 Consequence::Winner(_) => {
                     // Game could end here. Give the best score and move to the next branch.
+                    println!("Game WON!");
                     let score = Score::new(1_f64, 0);
                     choices[route].set_score(score);
                     direction.scores.insert(player, score);
@@ -112,16 +113,18 @@ pub fn score_tree(tree: &mut Tree) {
                     continue;
                 },
                 Consequence::Continue(board) | Consequence::TurnOver(board) => {
+                    println!("Traversing!");
                     drop(direction);
                     traversal.push(Direction::new(board, 0));
                     continue;
                 },
             }
-        } else {
+        } else {            
             drop(choices);
             drop(direction);
             let direction = traversal.pop().unwrap();
             if let Some(ref mut preceding) = traversal.last_mut() {
+                println!("Rewinding!");
                 // Back propagate each score only if it is better.
                 direction.scores
                     .into_iter()
@@ -238,5 +241,101 @@ mod test {
         assert!(choices[0].score().unwrap() == Score::new(1_f64, 0));
     }
 
-    
+    #[test]
+    fn insta_win_3x1() {
+        let mut tree: Tree = game::canned_3x1_start02().into();
+        score_tree(&mut tree);
+
+        // There are actually two moves as player 'B' is the winner. Player 'A' has to
+        // game over first.
+        let choices = tree.fetch_choices(tree.root()).unwrap();
+        assert!(choices.len() == 1);
+        let score = choices[0].score().unwrap();
+        assert!(*score.destination() == 0_f64);
+        assert!(*score.distance() == 0);
+
+        // Second move.
+        let next_board = choices[0].consequence().board().to_owned();
+        let choices = tree.fetch_choices(&next_board).unwrap();
+        assert!(choices.len() == 1);
+        assert!(choices[0].score().unwrap() == Score::new(1_f64, 0));
+    }
+
+    #[test]
+    fn stalemate_3x1() {
+        let mut tree: Tree = game::canned_3x1_start03().into();
+        score_tree(&mut tree);
+
+        let choices = tree.fetch_choices(tree.root()).unwrap();
+        assert!(choices.len() == 1);
+        let score = choices[0].score().unwrap();
+        assert!(*score.destination() >= 0.6_f64);
+        assert!(*score.distance() == 0);
+    }
+
+    #[test]
+    fn game_3x1() {
+        let mut tree: Tree = game::canned_3x1_start01().into();
+        score_tree(&mut tree);
+
+        // Player 'B' is the eventual winner. But player 'A' needs to pass first.
+        let choices = tree.fetch_choices(tree.root()).unwrap();
+        assert!(choices.len() == 1);
+        assert!(choices[0].score().unwrap() == Score::new(0_f64, 4));
+
+        // Second move
+        let next_board = choices[0].consequence().board().to_owned();
+        let choices = tree.fetch_choices(&next_board).unwrap();
+        assert!(choices.len() == 1);
+        assert!(choices[0].score().unwrap() == Score::new(1_f64, 6));
+
+        // Third move (passing)
+        let next_board = choices[0].consequence().board().to_owned();
+        let choices = tree.fetch_choices(&next_board).unwrap();
+        assert!(choices.len() == 1);
+        assert!(choices[0].score().unwrap() == Score::new(1_f64, 5));
+
+        // Fourth move. Player 'A' has their last attack.
+        let next_board = choices[0].consequence().board().to_owned();
+        let choices = tree.fetch_choices(&next_board).unwrap();
+        assert!(choices.len() == 1);
+        assert!(choices[0].score().unwrap() == Score::new(0_f64, 1));
+
+        // Fifth move. Player 'A' has just as well lost. They never get a move again even
+        // though they're still in the game.
+        let next_board = choices[0].consequence().board().to_owned();
+        let choices = tree.fetch_choices(&next_board).unwrap();
+        assert!(choices.len() == 1);
+        assert!(choices[0].score().unwrap() == Score::new(0_f64, 0));
+
+        // Sixth move. Back to player 'B'.
+        let next_board = choices[0].consequence().board().to_owned();
+        let choices = tree.fetch_choices(&next_board).unwrap();
+        assert!(choices.len() == 1);
+        assert!(choices[0].score().unwrap() == Score::new(1_f64, 2));
+
+        // Seventh move.
+        let next_board = choices[0].consequence().board().to_owned();
+        let choices = tree.fetch_choices(&next_board).unwrap();
+        assert!(choices.len() == 1);
+        assert!(choices[0].score().unwrap() == Score::new(1_f64, 1));
+
+        // Final move. Player 'B' has won.
+        let next_board = choices[0].consequence().board().to_owned();
+        let choices = tree.fetch_choices(&next_board).unwrap();
+        assert!(choices.len() == 1);
+        assert!(choices[0].score().unwrap() == Score::new(1_f64, 0));
+    }
+
+    #[test]
+    fn stalemate_3x1_v2() {
+        let mut tree: Tree = game::canned_3x1_start04().into();
+        score_tree(&mut tree);
+
+        let choices = tree.fetch_choices(tree.root()).unwrap();
+        assert!(choices.len() == 1);
+        let score = choices[0].score().unwrap();
+        assert!(*score.destination() >= 0.3_f64);
+        assert!(*score.distance() == 0);
+    }
 }
