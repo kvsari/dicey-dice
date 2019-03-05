@@ -137,7 +137,7 @@ pub fn canned_3x1_start04() -> Board {
 
 /// 3 player game
 pub fn canned_3x1_start05() -> Board {
-    let players = Players::new(2);
+    let players = Players::new(3);
     let player1 = Player::new(1, 'A');
     let player2 = Player::new(2, 'B');
     let player3 = Player::new(3, 'C');

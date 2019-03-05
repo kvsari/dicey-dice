@@ -678,6 +678,6 @@ mod test {
         let board = canned_3x1_start05();
         let consequences = calculate_all_consequences(board.clone());
 
-        assert!(consequences.len() == 8);
+        assert!(consequences.len() == 9);
     }
 }
