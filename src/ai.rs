@@ -125,6 +125,7 @@ pub fn score_tree(tree: &mut Tree) {
                 // Back propagate each score only if it is better.
                 direction.scores
                     .into_iter()
+                    .map(|(player, score)| (player, score.increment_distance()))
                     .for_each(|(player, new_score)| {
                         if let Some(p_score) = preceding.scores.get(&player) {
                             if new_score > *p_score {
@@ -138,18 +139,19 @@ pub fn score_tree(tree: &mut Tree) {
 
                 // We fetch the player at that stage and their score.
                 let player = preceding.board.players().current();
-                let score = preceding.scores.get(&player).unwrap();
+                let score = *preceding.scores
+                    .entry(player)
+                    .or_insert_with(|| Score::new(0_f64, 0));
                 
                 // Apply the score to the previous choice if there is one better for the
                 // player at that stage.
                 let choices = tree.mut_fetch_choices_unchecked(&preceding.board);
-                if let Some(existing_score) = choices[preceding.route].score() {
+                if let Some(existing_score) = *choices[preceding.route].score() {
                     if score > existing_score {
-                        drop(existing_score);
-                        choices[preceding.route].set_score(*score);
+                        choices[preceding.route].set_score(score);
                     }
                 } else {
-                    choices[preceding.route].set_score(*score);
+                    choices[preceding.route].set_score(score);
                 }
 
                 // Increment the route to explore the next branch (if any).
@@ -161,8 +163,6 @@ pub fn score_tree(tree: &mut Tree) {
 
 #[cfg(test)]
 mod test {
-    
-    use crate::hexagon::{Cube, Grid};
     use crate::game;
     use super::*;
 
@@ -220,8 +220,23 @@ mod test {
         let mut tree: Tree = game::canned_2x1_start01().into();
         score_tree(&mut tree);
 
-        dbg!(&tree);
+        // First move
         let choices = tree.fetch_choices(tree.root()).unwrap();
         assert!(choices.len() == 1);
+        assert!(choices[0].score().unwrap() == Score::new(0_f64, 0));
+
+        // Second move
+        let next_board = choices[0].consequence().board().to_owned();
+        let choices = tree.fetch_choices(&next_board).unwrap();
+        assert!(choices.len() == 1);
+        assert!(choices[0].score().unwrap() == Score::new(1_f64, 1));
+
+        // Last move
+        let next_board = choices[0].consequence().board().to_owned();
+        let choices = tree.fetch_choices(&next_board).unwrap();
+        assert!(choices.len() == 1);
+        assert!(choices[0].score().unwrap() == Score::new(1_f64, 0));
     }
+
+    
 }

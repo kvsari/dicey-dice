@@ -71,7 +71,6 @@ pub fn canned_2x1_start02() -> Board {
 pub fn canned_2x1_start03() -> Board {
     let players = Players::new(2);
     let player1 = Player::new(1, 'A');
-    let player2 = Player::new(2, 'B');
     let hexes = vec![
         (Cube::from((0, 0)), Hold::new(player1, 5)),
         (Cube::from((1, 0)), Hold::new(player1, 5)),

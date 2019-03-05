@@ -133,6 +133,10 @@ impl Score {
     pub fn new(destination: f64, distance: usize) -> Self {
         Score { destination, distance }
     }
+
+    pub fn increment_distance(&self) -> Self {
+        Score::new(self.destination, self.distance + 1)
+    }
 }
 
 /// Custom impl since if the destination scores are equal, a smaller distance is better.
