@@ -2,8 +2,9 @@
 //! simplicity here and not some fancy term driven app. The console is to verify that the
 //! engine works. The intended UI will be something else.
 use std::io;
+use std::collections::HashSet;
 
-use crate::game::{Tree, Choice, Board, Consequence};
+use crate::game::{Player, Choice, Score};
 use crate::session::{Progression, Session};
 
 pub fn play_session(mut session: Session) {
@@ -29,7 +30,6 @@ pub fn play_session(mut session: Session) {
         }
 
         // 3. Get all the options the current player has.
-        //let curr_player = state.board().players().current().to_owned();
         let available_choices = state.choices();
 
         if let Some(index) = handle_player_turn_input(available_choices.as_slice()) {
@@ -41,59 +41,47 @@ pub fn play_session(mut session: Session) {
     }
 }
 
-/// Plays a session of the game and returns the entire traversal.
-pub fn session(tree: &Tree) -> Vec<Board> {
-    println!("Starting game!");
+/// Passed in `Session` must have AI scoring enabled during setup.
+pub fn play_session_with_ai(mut session: Session, ai_players: HashSet<Player>) {
+    println!("Starting game session with {} AI players.", &ai_players.len());
 
-    let mut traversal: Vec<Board> = vec![tree.root().clone()];
-
-    loop {
+    loop {        
         // 1. Print the state of the board.
-        let board = traversal.last().unwrap().to_owned();
-        println!("{}", &board);
-
-        // 2. Get all the options the current player has.
-        let curr_player = board.players().current().to_owned();
-        let available_choices = tree.fetch_choices(&board).unwrap();
-
-        // 3. If there is only one option left, it's a pass. Therefore we check if it's a
-        // win/lose or turn over consequence.
-        if available_choices.len() == 1 {
-            match available_choices[0].consequence() {
-                Consequence::TurnOver(next_board) => {
-                    println!(
-                        "Player {} can only pass. Moving to next player.",
-                        &curr_player,
-                    );
-                    traversal.push(next_board.to_owned());
-                    continue;
-                },
-                Consequence::GameOver(next_board) => {
-                    println!(
-                        "Player {} has been knocked out! Moving to next player.",
-                        &curr_player,
-                    );
-                    traversal.push(next_board.to_owned());
-                    continue;
-                },
-                Consequence::Winner(_) => {
-                    println!("Player {} has won!", &curr_player);
-                    break;
-                },
-                _ => panic!("Invalid consequence. Supposed to be a passing move."),
-            }
+        // TODO: Print any progression too.
+        let state = session.current_turn().to_owned();
+        println!("{}", state.board());
+        
+        // 2. Check if we game on.
+        match state.game() {
+            Progression::PlayOn => (),
+            Progression::GameOverWinner(player) => {
+                println!("Game Over\nWinner is {}", &player);
+                break;
+            },
+            Progression::GameOverStalemate(players) => {
+                println!("Game Over\nSTATELMATE between players {:?}", &players);
+                break;
+            },
         }
 
-        // 4. Otherwise we need to give our player their right to exercise choices.
-        if let Some(choice) = handle_player_turn_input(&available_choices) {
-            traversal.push(available_choices[choice].consequence().board().to_owned());
+        // 3. Get the current player.
+        let curr_player = state.board().players().current().to_owned();
+        let available_choices = state.choices();
+
+        // 4. Check if the current player is an AI player.
+        let choice = if ai_players.contains(&curr_player) {
+            handle_ai_turn(available_choices.as_slice())
         } else {
-            println!("Player has opted to quit ending game. No winner determined.");
+            handle_player_turn_input(available_choices.as_slice())
+        };
+
+        if let Some(index) = choice {
+            session.advance(&available_choices[index]).unwrap();
+        } else {
+            println!("Quitting game. No Winner.");
             break;
         }
     }
-
-    traversal
 }
 
 /// The board must be a valid key within the tree. Otherwise panic.
@@ -144,14 +132,19 @@ pub fn print_actions_from_choices(choices: &[Choice]) {
         }); 
 }
 
-/*
-pub fn print_game_ended(boardstate: &BoardState) {
-    let players = boardstate.players();
+/// Rely on the choice scoring to move.
+pub fn handle_ai_turn(choices: &[Choice]) -> Option<usize> {
+    let (index, _) = choices
+        .iter()
+        .enumerate()
+        .fold((0, Score::default()), |(index, best), (count, choice)| {
+            let score = choice.score().unwrap();
+            if score > best {
+                (count, score)
+            } else {
+                (index, best)
+            }
+        });
 
-    if players.player_count() == 1 {
-        println!("Player {} wins!", &players.current());
-    } else {
-        println!("No winner.");
-    }
+    Some(index)
 }
-*/

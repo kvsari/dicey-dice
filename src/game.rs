@@ -8,9 +8,11 @@ use crate::hexagon::{Rectangular, Grid, Cube};
 pub mod player;
 pub mod model;
 mod rules;
+mod score;
 
 pub use model::{Board, Tree, Choice, Action, Consequence, Score};
 pub use player::{Player, Players};
+pub use score::score_tree;
 use model::Hold;
 
 pub fn generate_random_grid(columns: u32, rows: u32, players: Players) -> Grid<Hold> {
@@ -195,19 +197,53 @@ pub fn canned_2x2_start03() -> Board {
     Board::new(players, grid.change_to_rectangle(2, 2), 0)
 }
 
-/// Board where Player A and Player B can battle indefinitely.
+/// Board where Player A and Player B will battle. Player A can win, but if he makes a
+/// mistake, player B can win instead.
 pub fn canned_2x2_start04() -> Board {
     let players = Players::new(2);
     let player1 = Player::new(1, 'A');
     let player2 = Player::new(2, 'B');
     let hexes = vec![
-        (Cube::from((0, 0)), Hold::new(player1, 2)),
+        (Cube::from((0, 0)), Hold::new(player1, 5)),
         (Cube::from((1, 0)), Hold::new(player1, 4)),
         (Cube::from((0, 1)), Hold::new(player2, 5)),
         (Cube::from((1, 1)), Hold::new(player2, 3)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
     Board::new(players, grid.change_to_rectangle(2, 2), 0)
+}
+
+pub fn canned_3x2_start01() -> Board {
+    let players = Players::new(2);
+    let player1 = Player::new(1, 'A');
+    let player2 = Player::new(2, 'B');
+    let hexes = vec![
+        (Cube::from((0, 0)), Hold::new(player1, 4)),
+        (Cube::from((1, 0)), Hold::new(player2, 4)),
+        (Cube::from((2, 0)), Hold::new(player1, 4)),
+        (Cube::from((0, 1)), Hold::new(player2, 5)),
+        (Cube::from((1, 1)), Hold::new(player1, 5)),
+        (Cube::from((2, 1)), Hold::new(player2, 5)),
+    ];
+    let grid: Grid<Hold> = hexes.into_iter().collect();
+    Board::new(players, grid.change_to_rectangle(3, 2), 0)
+}
+
+/// Anything higher than this exposes an inneficiency in the movement scoring algorithm.
+pub fn canned_3x2_start02() -> Board {
+    let players = Players::new(2);
+    let player1 = Player::new(1, 'A');
+    let player2 = Player::new(2, 'B');
+    let hexes = vec![
+        (Cube::from((0, 0)), Hold::new(player1, 3)),
+        (Cube::from((1, 0)), Hold::new(player2, 3)),
+        (Cube::from((2, 0)), Hold::new(player1, 3)),
+        (Cube::from((0, 1)), Hold::new(player2, 3)),
+        (Cube::from((1, 1)), Hold::new(player1, 4)),
+        (Cube::from((2, 1)), Hold::new(player2, 4)),
+    ];
+    let grid: Grid<Hold> = hexes.into_iter().collect();
+    Board::new(players, grid.change_to_rectangle(3, 2), 0)
 }
 
 /// A more serious board that consumes quite some resources but can be evaluated.
@@ -245,6 +281,25 @@ pub fn canned_3x3_start02() -> Board {
         (Cube::from((-1, 2)), Hold::new(player1, 2)),
         (Cube::from((0, 2)), Hold::new(player1, 5)),
         (Cube::from((1, 2)), Hold::new(player1, 1)),
+    ];
+    let grid: Grid<Hold> = hexes.into_iter().collect();
+    Board::new(players, grid.change_to_rectangle(3, 3), 0)
+}
+
+pub fn canned_3x3_start03() -> Board {
+    let players = Players::new(2);
+    let player1 = Player::new(1, 'A');
+    let player2 = Player::new(2, 'B');
+    let hexes = vec![
+        (Cube::from((0, 0)), Hold::new(player1, 3)),
+        (Cube::from((1, 0)), Hold::new(player2, 3)),
+        (Cube::from((2, 0)), Hold::new(player1, 3)),
+        (Cube::from((0, 1)), Hold::new(player2, 4)),
+        (Cube::from((1, 1)), Hold::new(player1, 4)),
+        (Cube::from((2, 1)), Hold::new(player2, 4)),
+        (Cube::from((-1, 2)), Hold::new(player1, 5)),
+        (Cube::from((0, 2)), Hold::new(player2, 5)),
+        (Cube::from((1, 2)), Hold::new(player1, 5)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
     Board::new(players, grid.change_to_rectangle(3, 3), 0)

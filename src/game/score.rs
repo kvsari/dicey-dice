@@ -2,7 +2,7 @@
 //! during play.
 use std::collections::HashMap;
 
-use crate::game::{Board, Player, Tree, Consequence, Score};
+use super::{Board, Player, Tree, Consequence, Score};
 
 /// One point/step on the traversal of the game tree.
 #[derive(Debug, Clone)]
@@ -61,7 +61,11 @@ pub fn score_tree(tree: &mut Tree) {
     let direction = Direction::new(board, 0);
     traversal.push(direction);
 
+    let mut count = 0;
+
     while let Some(ref mut direction) = traversal.last_mut() {
+        count += 1;
+        //println!("{}", count);
         let choices = tree.mut_fetch_choices_unchecked(&direction.board);
         let route = direction.route;
         let player = direction.board.players().current();
@@ -105,7 +109,7 @@ pub fn score_tree(tree: &mut Tree) {
                 },
                 Consequence::Winner(_) => {
                     // Game could end here. Give the best score and move to the next branch.
-                    println!("Game WON!");
+                    //println!("Game WON!");
                     let score = Score::new(1_f64, 0);
                     choices[route].set_score(score);
                     direction.scores.insert(player, score);
@@ -113,7 +117,7 @@ pub fn score_tree(tree: &mut Tree) {
                     continue;
                 },
                 Consequence::Continue(board) | Consequence::TurnOver(board) => {
-                    println!("Traversing!");
+                    //println!("Traversing!");
                     drop(direction);
                     traversal.push(Direction::new(board, 0));
                     continue;
@@ -124,7 +128,7 @@ pub fn score_tree(tree: &mut Tree) {
             drop(direction);
             let direction = traversal.pop().unwrap();
             if let Some(ref mut preceding) = traversal.last_mut() {
-                println!("Rewinding!");
+                //println!("Rewinding!");
                 // Back propagate each score only if it is better.
                 direction.scores
                     .into_iter()
@@ -145,6 +149,8 @@ pub fn score_tree(tree: &mut Tree) {
                 let score = *preceding.scores
                     .entry(player)
                     .or_insert_with(|| Score::new(0_f64, 0));
+
+                //dbg!(&preceding.scores);
                 
                 // Apply the score to the previous choice if there is one better for the
                 // player at that stage.
@@ -162,6 +168,8 @@ pub fn score_tree(tree: &mut Tree) {
             }
         }
     }
+
+    println!("Tree movement scoring looped {} times.", count);
 }
 
 #[cfg(test)]
@@ -338,4 +346,17 @@ mod test {
         assert!(*score.destination() >= 0.3_f64);
         assert!(*score.distance() == 0);
     }
+
+    /*
+    #[test]
+    fn game_3x1_3p() {
+        let mut tree: Tree = game::canned_3x1_start05().into();
+        score_tree(&mut tree);
+
+        // Player 'B' is the eventual winner. But player 'A' needs to pass first.
+        let choices = tree.fetch_choices(tree.root()).unwrap();
+        assert!(choices.len() == 1);
+        assert!(choices[0].score().unwrap() == Score::new(0_f64, 5));
+    }
+    */
 }

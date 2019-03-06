@@ -163,6 +163,13 @@ impl cmp::PartialOrd for Score {
     }
 }
 
+/// Initialize with the worst possible score.
+impl Default for Score {
+    fn default() -> Self {
+        Score::new(0_f64, 0)
+    }
+}
+
 /// A `Choice` which that is an `Action` with its `Consequence`.
 #[derive(Debug, Clone, PartialEq, Getters)]
 pub struct Choice {

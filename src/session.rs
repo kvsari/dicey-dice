@@ -177,6 +177,7 @@ impl Session {
 pub struct Setup {
     players: Players,
     board: Option<Board>,
+    ai_scoring: bool,
 }
 
 impl Setup {
@@ -184,6 +185,7 @@ impl Setup {
         Setup {
             players: Players::new(2),
             board: None,
+            ai_scoring: false,
         }
     }
 
@@ -209,12 +211,21 @@ impl Setup {
         self
     }
 
+    /// Activate movement scoring. This will be used by AI.
+    pub fn enable_ai_scoring(&mut self) -> &mut Self {
+        self.ai_scoring = true;
+        self
+    }
+
     /// Produce a game session! Will return an error if there is no `Board` setup. Boards
     /// greater than 3x3 will hang the system as the current state of the library is to
     /// 'solve' the game by resolving the entire tree of every possible action.
     pub fn session(&self) -> Result<Session, String> {
         if let Some(board) = self.board.clone() {
-            let tree: Tree = board.clone().into();
+            let mut tree: Tree = board.clone().into();
+            if self.ai_scoring {
+                game::score_tree(&mut tree);
+            }
             Ok(Session::new(board, tree))
         } else {
             Err("No board set.".to_owned())
