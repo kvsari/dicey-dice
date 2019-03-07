@@ -12,10 +12,10 @@ fn main() -> Result<(), Box<dyn error::Error + 'static>> {
 
     //let players = game::Players::new(2);
     //let start = game::generate_random_board(2, 2, players);
-    //let start = game::canned_2x2_start05();
+    //let start = game::canned_2x2_start01();
     //let start = game::canned_3x1_start05();
     let start = game::canned_3x2_start02();
-    //let start = game::canned_3x3_start03();
+    //let start = game::canned_3x3_start01();
 
     println!("Using this board:\n{}", &start);
 
@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn error::Error + 'static>> {
         .session()?;
 
     //console::play_session(session);
-    console::play_session_with_ai(session, ai_players);
+    //console::play_session_with_ai(session, ai_players);
 
     Ok(())
 }

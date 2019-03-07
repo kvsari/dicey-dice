@@ -204,6 +204,10 @@ impl Tree {
         self.states.get(board).map(|v| v.as_slice())
     }
 
+    pub (crate) fn fetch_choices_unchecked(&self, board: &Board) -> &[Choice] {
+        self.states.get(board).unwrap().as_slice()
+    }
+
     /// Internal use convenience method that auto unwraps too.
     pub (crate) fn mut_fetch_choices_unchecked(&mut self, board: &Board) -> &mut [Choice] {
         self.states.get_mut(board).unwrap().as_mut_slice()

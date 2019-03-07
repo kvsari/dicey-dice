@@ -2,7 +2,7 @@
 //! during play.
 use std::collections::HashMap;
 
-use super::{Board, Player, Tree, Consequence, Score};
+use super::{Board, Player, Tree, Consequence, Score, Choice};
 
 /// One point/step on the traversal of the game tree.
 #[derive(Debug, Clone)]
@@ -170,6 +170,44 @@ pub fn score_tree(tree: &mut Tree) {
     }
 
     println!("Tree movement scoring looped {} times.", count);
+}
+
+/// Score all the nodes moves in the tree. Return the number of moves scored.
+pub fn score_tree_recursively(tree: &mut Tree) -> usize {
+    let start = tree.root().to_owned();
+    score(start, tree)
+}
+
+fn score(board: Board, tree: &mut Tree) -> usize { //(usize, HashMap<Player, Score>) {
+    //let mut scores: HashMap<Player, Score> = HashMap::new();
+    let player = board.players().current();
+    let choices: Vec<Choice> = tree
+        .fetch_choices_unchecked(&board)
+        .iter()
+        .cloned()
+        .collect();
+    let mut sum = 0;
+    for choice in choices {
+        let consequence = choice.consequence().to_owned();
+        let visited = match consequence {
+            Consequence::Stalemate(board) => {
+                1
+            },
+            Consequence::GameOver(board) => {
+                score(board, tree)
+            },
+            Consequence::Winner(_) => {
+                1
+            },
+            Consequence::Continue(board) | Consequence::TurnOver(board) => {
+                score(board, tree)
+            },
+        };
+        
+        sum += visited;
+    }
+
+    sum + 1
 }
 
 #[cfg(test)]
