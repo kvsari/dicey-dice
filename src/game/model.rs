@@ -1,5 +1,6 @@
 //! Game data structures
 use std::collections::HashMap;
+use std::cell::Cell;
 use std::{fmt, ops, cmp};
 
 use derive_getters::Getters;
@@ -171,23 +172,34 @@ impl Default for Score {
 }
 
 /// A `Choice` which that is an `Action` with its `Consequence`.
-#[derive(Debug, Clone, PartialEq, Getters)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Choice {
     action: Action,
     consequence: Consequence,
 
     /// Filled in AI phase when scoring each move. 
-    score: Option<Score>,
-    
+    score: Cell<Option<Score>>,    
 }
 
 impl Choice {
     pub fn new(action: Action, consequence: Consequence) -> Self {
-        Choice { action, consequence, score: None }
+        Choice { action, consequence, score: Cell::new(None) }
     }
 
-    pub fn set_score(&mut self, score: Score) {
-        self.score = Some(score)
+    pub fn action(&self) -> &Action {
+        &self.action
+    }
+
+    pub fn consequence(&self) -> &Consequence {
+        &self.consequence
+    }
+
+    pub fn score(&self) -> Option<Score> {
+        self.score.get()
+    }
+
+    pub fn set_score(&self, score: Score) {
+        self.score.set(Some(score));
     }
 }
 

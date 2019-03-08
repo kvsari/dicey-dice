@@ -226,12 +226,11 @@ impl Setup {
         if let Some(board) = self.board.clone() {
             let mut tree: Tree = board.clone().into();
             if self.ai_scoring {
-                let start_scoring = Instant::now();
-                //game::score_tree(&mut tree);
-                let choices = game::score_tree_recursively(&mut tree);
-                let scoring_time = start_scoring.elapsed();
-                println!("Scoring took {:?}", &scoring_time);
-                println!("Tree had a total of {} choices visited.", &choices);
+                //let start_scoring = Instant::now();
+                let _choices = game::score_tree(&mut tree);
+                //let scoring_time = start_scoring.elapsed();
+                //println!("Scoring took {:?}", &scoring_time);
+                //println!("Tree had a total of {} choices visited.", &choices);
             }
             Ok(Session::new(board, tree))
         } else {

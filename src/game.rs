@@ -12,7 +12,7 @@ mod score;
 
 pub use model::{Board, Tree, Choice, Action, Consequence, Score};
 pub use player::{Player, Players};
-pub use score::{score_tree, score_tree_recursively};
+pub use score::score_tree;
 use model::Hold;
 
 pub fn generate_random_grid(columns: u32, rows: u32, players: Players) -> Grid<Hold> {
