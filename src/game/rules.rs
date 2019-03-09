@@ -1,5 +1,4 @@
 //! Game rules. Controls what are valid moves.
-use std::collections::HashMap;
 
 use crate::hexagon::{Grid, Cube};
 use super::model::*;
@@ -7,78 +6,6 @@ use super::Player;
 
 /// Maximum amount of dice a hexagon holding may have.
 const MAX_DICE: u8 = 5;
-
-/// Function will build all boardstates from `start`  inserting them into the `states` map.
-/// If the boardstate already exists will skip that boardstate. This function has no
-/// horizon so it won't stop generating until the stack is empty.
-pub fn calculate_all_consequences(start: Board) -> HashMap<Board, Vec<Choice>> {
-    //depth_first_calc_consequences(start)
-    let (tree, stats) = breadth_first_calc_consequences(start);
-
-    stats
-        .iter()
-        .for_each(|stat| println!("{}", stat));
-
-    let totals = stats
-        .iter()
-        .fold(Totals::default(), |totals, stats| {
-            let n_totals = Totals::new(*stats.boards(), *stats.inserted());
-            totals + n_totals
-        });
-    println!("{}", &totals);
-    
-    tree
-}
-
-/// Calculate all consequences going layer by layer rather than following a single
-/// branch all the way to the end and then backtracking upwards. This means that each
-/// layer will grow exponentially large but it will be easier to see how the dataset
-/// grows geometrically as the grid size/players increase linearly.
-fn breadth_first_calc_consequences(
-    start: Board
-) -> (HashMap<Board, Vec<Choice>>, Vec<LayerStats>) {
-    let mut states: HashMap<Board, Vec<Choice>> = HashMap::new();
-    let mut current_layer: Option<Vec<Board>> = Some(vec![start]);
-    let mut layer_count: usize = 0;
-    let mut layer_stats: Vec<LayerStats> = Vec::new();
-    
-    loop {
-        let layer = current_layer.take().unwrap();
-        
-        if layer.is_empty() {
-            break;
-        }
-
-        // Prepare some stats.
-        layer_count += 1;
-        let layer_boards = layer.len();
-        let mut board_inserts = 0;
-        //
-        
-        let mut next_layer = Vec::new();
-        for board in layer {
-            if !states.contains_key(&board) {
-                //let choices = choices_from_board(&board);
-                let choices = choices_from_board_only_pass_at_end(&board);
-                next_layer.extend(
-                    choices
-                        .iter()
-                        .map(|choice| choice.consequence().board().to_owned())
-                );
-                states.insert(board, choices);
-
-                // Prepare more stats.
-                board_inserts += 1;
-            }
-        }
-        current_layer = Some(next_layer);
-
-        // Record the stats.
-        layer_stats.push(LayerStats::new(layer_count, layer_boards, board_inserts));
-    }
-
-    (states, layer_stats)
-}
 
 /*
 fn choices_from_board(board: &Board) -> Vec<Choice> {
@@ -136,7 +63,7 @@ fn choices_from_board(board: &Board) -> Vec<Choice> {
 
 /// Like `choices_from_board` above but does not add a passing move until there are no
 /// attacking moves left. This is to see if it reduces tree generation depth/breadth.
-fn choices_from_board_only_pass_at_end(board: &Board) -> Vec<Choice> {
+pub (in crate::game) fn choices_from_board_only_pass_at_end(board: &Board) -> Vec<Choice> {
     let attacking_moves = all_legal_attacks_from(
         board.grid(), &board.players().current()
     );
@@ -163,7 +90,6 @@ fn choices_from_board_only_pass_at_end(board: &Board) -> Vec<Choice> {
         // the game but there is no winner. We haven't yet implemented scoring to determine
         // a winner by points or a tie-breaker.
         if stalemate(board) {
-            //println!("STALEMATE FOUND: {}", &board);
             return vec![
                 Choice::new(Action::Pass, Consequence::Stalemate(board.to_owned()))
             ];
@@ -491,23 +417,7 @@ mod test {
             _ => panic!("Invalid consequence."),
         }
     }
-
-    #[test]
-    fn breadth_first_on_canned_2x1_start01() {
-        let board = canned_2x1_start01();
-        let (states, _stats) = breadth_first_calc_consequences(board.clone());
-        assert!(states.len() == 3);
-        assert!(states.contains_key(&board));
-    }
-
-    #[test]
-    fn breadth_first_on_canned_2x2_start01() {
-        let board = canned_2x2_start01();
-        let (states, _stats) = breadth_first_calc_consequences(board.clone());
-        assert!(states.len() == 4);
-        assert!(states.contains_key(&board));
-    }
-
+    
     #[test]
     fn no_stalemate01() {
         assert!(!stalemate(&canned_1x1_start()));
@@ -663,21 +573,5 @@ mod test {
 
         // Test
         assert!(stalemate(&board));
-    }
-
-    #[test]
-    fn consequences_3x1_2player() {
-        let board = canned_3x1_start01();
-        let consequences = calculate_all_consequences(board.clone());
-
-        assert!(consequences.len() == 8);
-    }
-
-    #[test]
-    fn consequences_3x1_3player() {
-        let board = canned_3x1_start05();
-        let consequences = calculate_all_consequences(board.clone());
-
-        assert!(consequences.len() == 9);
     }
 }

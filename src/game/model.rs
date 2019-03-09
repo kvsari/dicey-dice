@@ -7,7 +7,6 @@ use derive_getters::Getters;
 
 use crate::hexagon::{Cube, Grid};
 use super::{Player, Players};
-use super::rules::calculate_all_consequences;
 
 pub type FromHex = Cube;
 pub type ToHex = Cube;
@@ -211,6 +210,10 @@ pub struct Tree {
 }
 
 impl Tree {
+    pub (in crate::game) fn new(root: Board, states: HashMap<Board, Vec<Choice>>) -> Self {
+        Tree { root, states }
+    }
+    
     /// Convenience method to save on calling the getters.
     pub fn fetch_choices(&self, board: &Board) -> Option<&[Choice]> {
         self.states.get(board).map(|v| v.as_slice())
@@ -223,21 +226,6 @@ impl Tree {
     /// Internal use convenience method that auto unwraps too.
     pub (crate) fn mut_fetch_choices_unchecked(&mut self, board: &Board) -> &mut [Choice] {
         self.states.get_mut(board).unwrap().as_mut_slice()
-    }
-}
-
-/// I just feel dirty doing `impl Tree { pub fn new(b: Board) -> Self ... ` for some reason.
-/// Depending on the size of the board, this could take a long time or cause an OOM error.
-///
-/// Come to think of it, `From` conversions should be relatively lightweight. This can be
-/// quite heavy. That's probably why it didn't feel right as a `new` constructor. This
-/// should be handled in a function call.
-impl From<Board> for Tree {
-    fn from(b: Board) -> Self {
-        Tree {
-            root: b.clone(),
-            states: calculate_all_consequences(b),
-        }
     }
 }
 
@@ -338,12 +326,13 @@ mod test {
     use std::error;
 
     use crate::game;
+    use super::super::build_tree;
     use super::*;
 
     #[test]
     fn board_matches_board_2x1() -> Result<(), Box<dyn error::Error>> {
         let start = game::canned_2x1_start01();
-        let tree: Tree = start.clone().into();
+        let tree = build_tree(start.clone());
 
         assert!(tree.root == start);
 
@@ -353,7 +342,7 @@ mod test {
     #[test]
     fn board_matches_board_2x2() -> Result<(), Box<dyn error::Error>> {
         let start = game::canned_2x2_start01();
-        let tree: Tree = start.clone().into();
+        let tree = build_tree(start.clone());
 
         assert!(tree.root == start);
 

@@ -224,10 +224,10 @@ impl Setup {
     /// 'solve' the game by resolving the entire tree of every possible action.
     pub fn session(&self) -> Result<Session, String> {
         if let Some(board) = self.board.clone() {
-            let mut tree: Tree = board.clone().into();
+            let tree = game::build_tree(board.clone());
             if self.ai_scoring {
                 //let start_scoring = Instant::now();
-                let _choices = game::score_tree(&mut tree);
+                let _choices = game::score_tree(&tree);
                 //let scoring_time = start_scoring.elapsed();
                 //println!("Scoring took {:?}", &scoring_time);
                 //println!("Tree had a total of {} choices visited.", &choices);
@@ -257,7 +257,7 @@ mod test {
     fn state_from_board_2x1() -> Result<(), Box<dyn error::Error>> {
         let start = game::canned_2x1_start01();
         let s_grid = start.grid().to_owned();
-        let tree: game::Tree = start.clone().into();
+        let tree = game::build_tree(start.clone());
 
         let state = state_from_board(&start, &tree);
         let f_grid = state.board().grid().to_owned();
@@ -271,7 +271,7 @@ mod test {
     fn state_from_board_2x2() -> Result<(), Box<dyn error::Error>> {
         let start = game::canned_2x2_start01();
         let s_grid = start.grid().to_owned();
-        let tree: game::Tree = start.clone().into();
+        let tree = game::build_tree(start.clone());
 
         let state = state_from_board(&start, &tree);
         let f_grid = state.board().grid().to_owned();

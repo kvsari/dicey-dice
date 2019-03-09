@@ -7,11 +7,13 @@ use crate::hexagon::{Rectangular, Grid, Cube};
 
 pub mod player;
 pub mod model;
+mod generate;
 mod rules;
 mod score;
 
 pub use model::{Board, Tree, Choice, Action, Consequence, Score};
 pub use player::{Player, Players};
+pub use generate::build_tree;
 pub use score::score_tree;
 use model::Hold;
 

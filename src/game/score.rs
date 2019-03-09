@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::mem;
 
-use super::{Board, Player, Tree, Consequence, Score, Choice};
+use super::{Board, Player, Tree, Consequence, Score};
 
 /// Look at a board and calculate a score from 0 to 1 for all the `Players`. It assumes
 /// that the board has already been checked to not be a winning or losing board.
@@ -119,6 +119,7 @@ fn score(board: &Board, tree: &Tree) -> (usize, HashMap<Player, Score>) {
 #[cfg(test)]
 mod test {
     use crate::game;
+    use super::super::build_tree;
     use super::*;
 
     #[test]
@@ -136,7 +137,7 @@ mod test {
 
     #[test]
     fn insta_win_1x1() {
-        let tree: Tree = game::canned_1x1_start().into();
+        let tree = build_tree(game::canned_1x1_start());
         score_tree(&tree);
 
         let choices = tree.fetch_choices(tree.root()).unwrap();
@@ -148,7 +149,7 @@ mod test {
 
     #[test]
     fn insta_win_2x1() {
-        let tree: Tree = game::canned_2x1_start03().into();
+        let tree = build_tree(game::canned_2x1_start03());
         score_tree(&tree);
 
         let choices = tree.fetch_choices(tree.root()).unwrap();
@@ -160,7 +161,7 @@ mod test {
 
     #[test]
     fn stalemate_2x1() {
-        let tree: Tree = game::canned_2x1_start02().into();
+        let tree = build_tree(game::canned_2x1_start02());
         score_tree(&tree);
 
         let choices = tree.fetch_choices(tree.root()).unwrap();
@@ -172,7 +173,7 @@ mod test {
 
     #[test]
     fn game_2x1() {
-        let tree: Tree = game::canned_2x1_start01().into();
+        let tree = build_tree(game::canned_2x1_start01());
         score_tree(&tree);
 
         // First move
@@ -195,7 +196,7 @@ mod test {
 
     #[test]
     fn insta_win_3x1() {
-        let tree: Tree = game::canned_3x1_start02().into();
+        let tree = build_tree(game::canned_3x1_start02());
         score_tree(&tree);
 
         // There are actually two moves as player 'B' is the winner. Player 'A' has to
@@ -215,7 +216,7 @@ mod test {
 
     #[test]
     fn stalemate_3x1() {
-        let tree: Tree = game::canned_3x1_start03().into();
+        let tree = build_tree(game::canned_3x1_start03());
         score_tree(&tree);
 
         let choices = tree.fetch_choices(tree.root()).unwrap();
@@ -227,7 +228,7 @@ mod test {
 
     #[test]
     fn game_3x1() {
-        let tree: Tree = game::canned_3x1_start01().into();
+        let tree = build_tree(game::canned_3x1_start01());
         score_tree(&tree);
 
         // Player 'B' is the eventual winner. But player 'A' needs to pass first.
@@ -282,7 +283,7 @@ mod test {
 
     #[test]
     fn stalemate_3x1_v2() {
-        let tree: Tree = game::canned_3x1_start04().into();
+        let tree = build_tree(game::canned_3x1_start04());
         score_tree(&tree);
 
         let choices = tree.fetch_choices(tree.root()).unwrap();
