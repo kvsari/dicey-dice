@@ -200,6 +200,10 @@ impl Choice {
     pub fn set_score(&self, score: Score) {
         self.score.set(Some(score));
     }
+
+    pub fn clear_score(&self) {
+        self.score.set(None);
+    }
 }
 
 /// The game tree. Contains all moves possible from the starting state.
@@ -213,19 +217,33 @@ impl Tree {
     pub (in crate::game) fn new(root: Board, states: HashMap<Board, Vec<Choice>>) -> Self {
         Tree { root, states }
     }
+
+    /*
+    pub fn (in crate::game) fn empty(root: Board) -> Self {
+        Tree {
+            root,
+            states: HashMap::new(),
+        }
+    }
+     */
+
+    /*
+    pub (in crate::game) fn consume(self) -> (Board, HashMap<Board, Vec<Choice>>) {
+        (self.root, self.states)
+    }
+     */
+
+    pub (in crate::game) fn append(&mut self, extra: HashMap<Board, Vec<Choice>>) {
+        extra
+            .into_iter()
+            .for_each(|(board, choices)| if !self.states.contains_key(&board) {
+                self.states.insert(board, choices);
+            });
+    }
     
     /// Convenience method to save on calling the getters.
     pub fn fetch_choices(&self, board: &Board) -> Option<&[Choice]> {
         self.states.get(board).map(|v| v.as_slice())
-    }
-
-    pub (crate) fn fetch_choices_unchecked(&self, board: &Board) -> &[Choice] {
-        self.states.get(board).unwrap().as_slice()
-    }
-
-    /// Internal use convenience method that auto unwraps too.
-    pub (crate) fn mut_fetch_choices_unchecked(&mut self, board: &Board) -> &mut [Choice] {
-        self.states.get_mut(board).unwrap().as_mut_slice()
     }
 }
 

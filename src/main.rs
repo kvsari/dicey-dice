@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn error::Error + 'static>> {
     //let start = game::canned_2x2_start04();
     //let start = game::canned_3x1_start05();
     //let start = game::canned_3x2_start02();
-    let start = game::canned_3x3_start01();
+    let start = game::canned_3x3_start03();
 
     println!("Using this board:\n{}", &start);
 
@@ -28,6 +28,7 @@ fn main() -> Result<(), Box<dyn error::Error + 'static>> {
     let session = session::Setup::new()
         .set_board(start)
         .enable_ai_scoring()
+        .generation_horizon(30)
         .session()?;
 
     //console::play_session(session);

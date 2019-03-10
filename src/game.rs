@@ -13,8 +13,8 @@ mod score;
 
 pub use model::{Board, Tree, Choice, Action, Consequence, Score};
 pub use player::{Player, Players};
-pub use generate::build_tree;
-pub use score::score_tree;
+pub use generate::{start_tree, grow_tree, build_tree};
+pub use score::{score_tree, clear_all_scoring, clear_scoring_from, score_tree_from};
 use model::Hold;
 
 pub fn generate_random_grid(columns: u32, rows: u32, players: Players) -> Grid<Hold> {

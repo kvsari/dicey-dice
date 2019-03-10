@@ -5,12 +5,57 @@ use std::mem;
 
 use super::{Board, Player, Tree, Consequence, Score};
 
+/// Wipe all scoring from the tree.
+pub fn clear_all_scoring(tree: &Tree) {
+    clear(tree.root(), tree);
+}
+
+/// Like above but only starting from the specified board.
+pub fn clear_scoring_from(from: &Board, tree: &Tree) {
+    clear(from, tree);
+}
+
+fn clear(board: &Board, tree: &Tree) {
+    let choices = match tree.fetch_choices(board) {
+        Some(choices) => choices,
+        None => return,
+    };
+
+    for choice in choices {
+        if choice.score().is_none() {
+            continue;
+        }
+        
+        match choice.consequence() {
+            Consequence::GameOver(ref board) |
+            Consequence::Continue(ref board) |
+            Consequence::TurnOver(ref board) => {
+                clear(board, tree);
+            },
+            _ => (),
+        }
+        choice.clear_score();
+    }
+}
+
+/// Score all the nodes moves in the tree. Return the number of moves scored.
+pub fn score_tree(tree: &Tree) -> usize {
+    let (touched, _) = score(tree.root(), tree);
+    touched
+}
+
+/// Score a section of the tree starting from the supplied `Board`.
+pub fn score_tree_from(from: &Board, tree: &Tree) -> usize {
+    let (touched, _) = score(from, tree);
+    touched
+}
+
 /// Look at a board and calculate a score from 0 to 1 for all the `Players`. It assumes
 /// that the board has already been checked to not be a winning or losing board.
 ///
 /// This will create a score by calculating the percentage of occupied tiles. No further
 /// analysis is done.
-pub fn score_board02(board: &Board) -> HashMap<Player, Score> {
+fn score_board(board: &Board) -> HashMap<Player, Score> {
     let mut count: HashMap<Player, usize> = HashMap::new();
     let tiles = board.grid().len() as f64;
     
@@ -32,16 +77,17 @@ pub fn score_board02(board: &Board) -> HashMap<Player, Score> {
         .collect()
 }
 
-/// Score all the nodes moves in the tree. Return the number of moves scored.
-pub fn score_tree(tree: &Tree) -> usize {
-    let (touched, _) = score(tree.root(), tree);
-    touched
-}
-
 fn score(board: &Board, tree: &Tree) -> (usize, HashMap<Player, Score>) {    
     let mut scores: HashMap<Player, Score> = HashMap::new();
     let player = board.players().current();
-    let choices = tree.fetch_choices_unchecked(&board);
+    let choices = match tree.fetch_choices(board) {
+        Some(choices) => choices,
+        None => {
+            // The tree has been partially calculated and we've reached the end. Score the
+            // board as it stands and return it.
+            return (0, score_board(board))
+        },
+    };
     let mut sum = 0;
     for choice in choices {
         // Since we are using a hashmap as the underlying tree data storage, there's a
@@ -55,7 +101,7 @@ fn score(board: &Board, tree: &Tree) -> (usize, HashMap<Player, Score>) {
         let (visited, sub_scores) = match consequence {
             Consequence::Stalemate(ref board) => {
                 // Game could end here. It's not an ideal end.
-                let sub_scores = score_board02(&board);
+                let sub_scores = score_board(&board);
                 choice.set_score(*sub_scores.get(&player).unwrap());                
                 return (1, sub_scores);
             },
@@ -125,7 +171,7 @@ mod test {
     #[test]
     fn three_quarters_two_player() {
         let board = game::canned_2x2_start01();
-        let scores = score_board02(&board);
+        let scores = score_board(&board);
         let mut players = board.players().playing();
         let player2 = players.pop().unwrap();
         let player1 = players.pop().unwrap();

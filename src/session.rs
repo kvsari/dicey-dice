@@ -1,9 +1,10 @@
 //! Handle a game.
-use std::time::Instant;
 
 use derive_getters::Getters;
 
 use crate::game::{self, Tree, Board, Players, Player, Choice, Action, Consequence};
+
+static HORIZON: usize = 50;
 
 /// State of game progression. Whether the game is on, over and what kind of over.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -134,42 +135,56 @@ fn state_from_board(board: &Board, tree: &Tree) -> State {
 #[derive(Debug, Clone, Getters)]
 pub struct Session {
     turns: Vec<State>,
-    tree: Tree,
+    tree: Option<Tree>,
+    horizon: usize,
+    scoring: bool,
 }
 
 impl Session {
-    pub fn new(start: Board, tree: Tree) -> Self {
+    pub fn new(start: Board, tree: Tree, horizon: usize, scoring: bool) -> Self {
         Session {
             turns: vec![state_from_board(&start, &tree)],
-            tree,
+            tree: Some(tree),
+            horizon,
+            scoring,
         }
     }
 
+    /*
     pub fn reset(self) -> Self {
         let first = self.turns.first().unwrap().to_owned();
         Session {
             turns: vec![first],
             tree: self.tree,
+            horizon: self.horizon,
+            scoring: self.scoring,
         }
     }
+    */
             
     pub fn current_turn(&self) -> &State {
         self.turns.last().unwrap()
     }
 
     /// Take an `Action` and advance the game state.
+    ///
+    /// TODO: Take a hint if the player is a AI or human. If AI, expand the tree after each
+    ///       `advance`ment. If a human, only regenerate the tree if running out of choices.
     pub fn advance(&mut self, choice: &Choice) -> Result<&State, String> {
         let state = self.current_turn();
         for available_choice in state.choices.iter() {
             if available_choice == choice {
                 let board = choice.consequence().board();
                 let state = state_from_board(board, &self.tree);
-                self.turns.push(state);
+                self.turns.push(state);                
                 return Ok(self.current_turn());
             }
         }
 
         Err("Invalid action.".to_owned())
+    }
+
+    pub fn compute(&mut self) {
     }
 }
 
@@ -180,6 +195,7 @@ pub struct Setup {
     players: Players,
     board: Option<Board>,
     ai_scoring: bool,
+    horizon: usize,
 }
 
 impl Setup {
@@ -188,6 +204,7 @@ impl Setup {
             players: Players::new(2),
             board: None,
             ai_scoring: false,
+            horizon: HORIZON,
         }
     }
 
@@ -219,20 +236,24 @@ impl Setup {
         self
     }
 
+    /// Change the compute horizon. Be careful though as generation suffers from
+    /// combinatorial explosion. Using a horizon of 0 will cause a panic.
+    pub fn generation_horizon(&mut self, horizon: usize) -> &mut Self {
+        self.horizon = horizon;
+        self
+    }
+
     /// Produce a game session! Will return an error if there is no `Board` setup. Boards
     /// greater than 3x3 will hang the system as the current state of the library is to
     /// 'solve' the game by resolving the entire tree of every possible action.
     pub fn session(&self) -> Result<Session, String> {
         if let Some(board) = self.board.clone() {
-            let tree = game::build_tree(board.clone());
+            //let tree = game::build_tree(board.clone());
+            let tree = game::start_tree(board.clone(), self.horizon);
             if self.ai_scoring {
-                //let start_scoring = Instant::now();
-                let _choices = game::score_tree(&tree);
-                //let scoring_time = start_scoring.elapsed();
-                //println!("Scoring took {:?}", &scoring_time);
-                //println!("Tree had a total of {} choices visited.", &choices);
+                let _choice_count = game::score_tree(&tree);                
             }
-            Ok(Session::new(board, tree))
+            Ok(Session::new(board, tree, self.horizon, self.ai_scoring))
         } else {
             Err("No board set.".to_owned())
         }
