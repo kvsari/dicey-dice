@@ -218,14 +218,12 @@ impl Tree {
         Tree { root, states }
     }
 
-    /*
-    pub fn (in crate::game) fn empty(root: Board) -> Self {
+    pub (in crate::game) fn empty(root: Board) -> Self {
         Tree {
             root,
             states: HashMap::new(),
         }
     }
-     */
 
     /*
     pub (in crate::game) fn consume(self) -> (Board, HashMap<Board, Vec<Choice>>) {

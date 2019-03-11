@@ -56,15 +56,20 @@ impl State {
 /// Generate a `State` from a chosen `Board` consequence and the `Tree` where that `Board`
 /// must exist. Runs inside a loop skipping over states that have only one turn left in
 /// them except for Winning states. Uses some logic to detect draw states.
-fn state_from_board(board: &Board, tree: &Tree) -> State {
+fn state_from_board(board: &Board, tree: &Tree) -> Result<State, usize> {
     let mut traversal: Vec<(Board, Choice)> = Vec::new();   
     let mut current_board = board.to_owned();
+    let mut depth: usize = 1;
     
     let state = loop {
-        let choices = tree.fetch_choices(&current_board).unwrap();
+        let choices = tree
+            .fetch_choices(&current_board)
+            .ok_or(depth)?;
+        
         // If there's only one choice left, it may be a passing/gameover/win move. Or the
         // last available attack.
         if choices.len() == 1 {
+            depth += 1;
             match choices[0].action() {
                 Action::Attack(_, _, _) => {
                     // There is one last attack to make. We won't execute this choice
@@ -122,9 +127,9 @@ fn state_from_board(board: &Board, tree: &Tree) -> State {
         );
     };
 
-    state
+    Ok(state)
 }
-    
+
 /// A game in progress. The `traversals` indicate how many turns have passed. Maintains
 /// all state of the game.
 ///
@@ -136,17 +141,26 @@ fn state_from_board(board: &Board, tree: &Tree) -> State {
 pub struct Session {
     turns: Vec<State>,
     tree: Option<Tree>,
-    horizon: usize,
-    scoring: bool,
 }
 
 impl Session {
-    pub fn new(start: Board, tree: Tree, horizon: usize, scoring: bool) -> Self {
+    pub fn new(start: Board, tree: Tree) -> Self {
+        // The start may contain pass move. Cycle to get at the first true turn.
+        // This code is a copy of what's happening in `advance` below. TODO: Refactor me.
+        let mut tree = Some(tree);
+        let first_turn = loop {
+            match state_from_board(&start, tree.as_ref().unwrap()) {
+                Ok(state) => break state,
+                Err(depth) => {
+                    let new_tree = game::start_tree(start.clone(), depth);
+                    tree = Some(new_tree);
+                },
+            }
+        };
+        
         Session {
-            turns: vec![state_from_board(&start, &tree)],
-            tree: Some(tree),
-            horizon,
-            scoring,
+            turns: vec![first_turn],
+            tree,
         }
     }
 
@@ -166,17 +180,22 @@ impl Session {
         self.turns.last().unwrap()
     }
 
-    /// Take an `Action` and advance the game state.
-    ///
-    /// TODO: Take a hint if the player is a AI or human. If AI, expand the tree after each
-    ///       `advance`ment. If a human, only regenerate the tree if running out of choices.
+    /// Take an `Action` and advance the game state. Advances the tree if necessary.
     pub fn advance(&mut self, choice: &Choice) -> Result<&State, String> {
         let state = self.current_turn();
         for available_choice in state.choices.iter() {
             if available_choice == choice {
                 let board = choice.consequence().board();
-                let state = state_from_board(board, &self.tree);
-                self.turns.push(state);                
+                let state = loop {
+                    match state_from_board(board, &self.tree.as_ref().unwrap()) {
+                        Ok(state) => break state,
+                        Err(depth) => {
+                            let new_tree = game::start_tree(board.to_owned(), depth);
+                            self.tree = Some(new_tree);
+                        },
+                    }
+                };
+                self.turns.push(state);
                 return Ok(self.current_turn());
             }
         }
@@ -184,8 +203,7 @@ impl Session {
         Err("Invalid action.".to_owned())
     }
 
-    pub fn compute(&mut self) {
-    }
+    
 }
 
 /// Setup a game session. Can set the number of players and the board size and to use
@@ -194,8 +212,6 @@ impl Session {
 pub struct Setup {
     players: Players,
     board: Option<Board>,
-    ai_scoring: bool,
-    horizon: usize,
 }
 
 impl Setup {
@@ -203,8 +219,6 @@ impl Setup {
         Setup {
             players: Players::new(2),
             board: None,
-            ai_scoring: false,
-            horizon: HORIZON,
         }
     }
 
@@ -230,30 +244,13 @@ impl Setup {
         self
     }
 
-    /// Activate movement scoring. This will be used by AI.
-    pub fn enable_ai_scoring(&mut self) -> &mut Self {
-        self.ai_scoring = true;
-        self
-    }
-
-    /// Change the compute horizon. Be careful though as generation suffers from
-    /// combinatorial explosion. Using a horizon of 0 will cause a panic.
-    pub fn generation_horizon(&mut self, horizon: usize) -> &mut Self {
-        self.horizon = horizon;
-        self
-    }
-
     /// Produce a game session! Will return an error if there is no `Board` setup. Boards
     /// greater than 3x3 will hang the system as the current state of the library is to
     /// 'solve' the game by resolving the entire tree of every possible action.
     pub fn session(&self) -> Result<Session, String> {
         if let Some(board) = self.board.clone() {
-            //let tree = game::build_tree(board.clone());
-            let tree = game::start_tree(board.clone(), self.horizon);
-            if self.ai_scoring {
-                let _choice_count = game::score_tree(&tree);                
-            }
-            Ok(Session::new(board, tree, self.horizon, self.ai_scoring))
+            let tree = game::start_tree(board.clone(), 1);
+            Ok(Session::new(board, tree))
         } else {
             Err("No board set.".to_owned())
         }
@@ -280,7 +277,7 @@ mod test {
         let s_grid = start.grid().to_owned();
         let tree = game::build_tree(start.clone());
 
-        let state = state_from_board(&start, &tree);
+        let state = state_from_board(&start, &tree).unwrap();
         let f_grid = state.board().grid().to_owned();
 
         assert!(s_grid == f_grid);
@@ -294,7 +291,7 @@ mod test {
         let s_grid = start.grid().to_owned();
         let tree = game::build_tree(start.clone());
 
-        let state = state_from_board(&start, &tree);
+        let state = state_from_board(&start, &tree).unwrap();
         let f_grid = state.board().grid().to_owned();
 
         assert!(s_grid == f_grid);

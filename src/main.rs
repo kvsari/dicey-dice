@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn error::Error + 'static>> {
     println!("Dicey Dice starting...");
 
     //let players = game::Players::new(2);
-    //let start = game::generate_random_board(2, 2, players);
+    //let start = game::generate_random_board(10, 10, players);
     //let start = game::canned_2x2_start04();
     //let start = game::canned_3x1_start05();
     //let start = game::canned_3x2_start02();
@@ -27,12 +27,10 @@ fn main() -> Result<(), Box<dyn error::Error + 'static>> {
     
     let session = session::Setup::new()
         .set_board(start)
-        .enable_ai_scoring()
-        .generation_horizon(30)
         .session()?;
 
-    //console::play_session(session);
-    console::play_session_with_ai(session, ai_players);
+    console::play_session(session);
+    //console::play_session_with_ai(session, ai_players);
 
     Ok(())
 }
