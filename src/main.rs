@@ -42,7 +42,7 @@ fn main() -> Result<(), Box<dyn error::Error + 'static>> {
         .session()?;
 
     //console::play_session(session);
-    console::play_session_with_ai(session, ai_players, 5);
+    console::play_session_with_ai(session, ai_players, 4);
 
     Ok(())
 }

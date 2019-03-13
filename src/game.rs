@@ -13,7 +13,12 @@ mod score;
 
 pub use model::{Board, Tree, Choice, Action, Consequence, Score};
 pub use player::{Player, Players};
-pub use generate::{start_tree, grow_tree, build_tree};
+pub use generate::{
+    start_tree_horizon_limited,
+    start_tree_insert_budgeted,
+    grow_tree_horizon_limited,
+    build_tree
+};
 pub use score::{score_tree, clear_all_scoring, clear_scoring_from, score_tree_from};
 use model::Hold;
 

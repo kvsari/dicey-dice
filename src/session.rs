@@ -152,7 +152,7 @@ impl Session {
             match state_from_board(&start, tree.as_ref().unwrap()) {
                 Ok(state) => break state,
                 Err(depth) => {
-                    let new_tree = game::start_tree(start.clone(), depth);
+                    let new_tree = game::start_tree_horizon_limited(start.clone(), depth);
                     tree = Some(new_tree);
                 },
             }
@@ -166,7 +166,7 @@ impl Session {
 
     pub fn reset(self) -> Self {
         let first = self.turns.first().unwrap().board.to_owned();
-        Session::new(first.clone(), game::start_tree(first, 1))
+        Session::new(first.clone(), game::start_tree_horizon_limited(first, 1))
     }
             
     pub fn current_turn(&self) -> &State {
@@ -188,7 +188,9 @@ impl Session {
             match state_from_board(board, &self.tree.as_ref().unwrap()) {
                 Ok(state) => break state,
                 Err(depth) => {
-                    let new_tree = game::start_tree(board.to_owned(), depth);
+                    let new_tree = game::start_tree_horizon_limited(
+                        board.to_owned(), depth
+                    );
                     self.tree = Some(new_tree);
                 },
             }
@@ -201,9 +203,24 @@ impl Session {
     /// Score the tree up to the depth specified in `horizon`. Will then edit current
     /// `State` to put the scoring into the current choices. A deep horizon will cause the
     /// system to lock up. High chance that an OOM error will follow.
-    pub fn score(&mut self, horizon: usize) -> &State {
+    pub fn score_with_depth_horizon(&mut self, horizon: usize) -> &State {
         let current_board = self.current_turn().board.to_owned();
-        let tree = game::start_tree(current_board, horizon);
+        let tree = game::start_tree_horizon_limited(current_board, horizon);
+        
+        let _ = game::score_tree(&tree);
+        let choices = tree.fetch_choices(tree.root()).unwrap().to_owned();
+        let last_state = self.turns.last_mut().unwrap();
+        last_state.choices = choices;
+        self.tree = Some(tree);
+        last_state
+    }
+
+    /// Score the tree up to the the board insert budget specified. The first tree layer
+    /// though will be computed without taking into account the budget, this way there will
+    /// always be all available choices for the turn.
+    pub fn score_with_insert_budget(&mut self, insert_budget: usize) -> &State {
+        let current_board = self.current_turn().board.to_owned();
+        let tree = game::start_tree_insert_budgeted(current_board, insert_budget);
         
         let _ = game::score_tree(&tree);
         let choices = tree.fetch_choices(tree.root()).unwrap().to_owned();
@@ -257,7 +274,7 @@ impl Setup {
     /// 'solve' the game by resolving the entire tree of every possible action.
     pub fn session(&self) -> Result<Session, String> {
         if let Some(board) = self.board.clone() {
-            let tree = game::start_tree(board.clone(), 1);
+            let tree = game::start_tree_horizon_limited(board.clone(), 1);
             Ok(Session::new(board, tree))
         } else {
             Err("No board set.".to_owned())

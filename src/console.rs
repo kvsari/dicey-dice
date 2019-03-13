@@ -43,7 +43,7 @@ pub fn play_session(mut session: Session) {
 
 /// Passed in `Session` must have AI scoring enabled during setup.
 pub fn play_session_with_ai(
-    mut session: Session, ai_players: HashSet<Player>, compute_horizon: usize,
+    mut session: Session, ai_players: HashSet<Player>, compute_budget: usize,
 ) {
     println!("Starting game session with {} AI players.", &ai_players.len());
 
@@ -74,7 +74,8 @@ pub fn play_session_with_ai(
         let choice = if ai_players.contains(&curr_player) {
             drop(available_choices);
             drop(state);
-            let state = session.score(compute_horizon);            
+            //let state = session.score_with_insert_budget(compute_budget);
+            let state = session.score_with_depth_horizon(compute_budget);
             handle_ai_turn(state.choices().as_slice())
         } else {
             handle_player_turn_input(available_choices.as_slice())
