@@ -164,46 +164,54 @@ impl Session {
         }
     }
 
-    /*
     pub fn reset(self) -> Self {
-        let first = self.turns.first().unwrap().to_owned();
-        Session {
-            turns: vec![first],
-            tree: self.tree,
-            horizon: self.horizon,
-            scoring: self.scoring,
-        }
+        let first = self.turns.first().unwrap().board.to_owned();
+        Session::new(first.clone(), game::start_tree(first, 1))
     }
-    */
             
     pub fn current_turn(&self) -> &State {
         self.turns.last().unwrap()
     }
 
-    /// Take an `Action` and advance the game state. Advances the tree if necessary.
-    pub fn advance(&mut self, choice: &Choice) -> Result<&State, String> {
-        let state = self.current_turn();
-        for available_choice in state.choices.iter() {
-            if available_choice == choice {
-                let board = choice.consequence().board();
-                let state = loop {
-                    match state_from_board(board, &self.tree.as_ref().unwrap()) {
-                        Ok(state) => break state,
-                        Err(depth) => {
-                            let new_tree = game::start_tree(board.to_owned(), depth);
-                            self.tree = Some(new_tree);
-                        },
-                    }
-                };
-                self.turns.push(state);
-                return Ok(self.current_turn());
+    /// Take an `Action` and advance the game state. Advances the tree if necessary. Takes
+    /// an `index` of the `[Choice]`.
+    pub fn advance(&mut self, index: usize) -> Result<&State, String> {
+        let choice = self
+            .current_turn()
+            .choices()
+            .get(index)
+            .ok_or("Index out of bounds.".to_owned())?
+            .to_owned();
+        
+        let board = choice.consequence().board();
+        let state = loop {
+            match state_from_board(board, &self.tree.as_ref().unwrap()) {
+                Ok(state) => break state,
+                Err(depth) => {
+                    let new_tree = game::start_tree(board.to_owned(), depth);
+                    self.tree = Some(new_tree);
+                },
             }
-        }
-
-        Err("Invalid action.".to_owned())
+        };
+        
+        self.turns.push(state);
+        Ok(self.current_turn())
     }
 
-    
+    /// Score the tree up to the depth specified in `horizon`. Will then edit current
+    /// `State` to put the scoring into the current choices. A deep horizon will cause the
+    /// system to lock up. High chance that an OOM error will follow.
+    pub fn score(&mut self, horizon: usize) -> &State {
+        let current_board = self.current_turn().board.to_owned();
+        let tree = game::start_tree(current_board, horizon);
+        
+        let _ = game::score_tree(&tree);
+        let choices = tree.fetch_choices(tree.root()).unwrap().to_owned();
+        let last_state = self.turns.last_mut().unwrap();
+        last_state.choices = choices;
+        self.tree = Some(tree);
+        last_state
+    }
 }
 
 /// Setup a game session. Can set the number of players and the board size and to use

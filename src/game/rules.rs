@@ -7,62 +7,8 @@ use super::Player;
 /// Maximum amount of dice a hexagon holding may have.
 const MAX_DICE: u8 = 5;
 
-/*
-fn choices_from_board(board: &Board) -> Vec<Choice> {
-    let attacking_moves = all_legal_attacks_from(
-        board.grid(), &board.players().current()
-    );
-
-    // If there are no attacking moves, we quickly check if the player has won or lost.
-    if attacking_moves.is_empty() {
-        // First we check if there's a winner. This will end the game if so.
-        if winner(board) {            
-            return vec![Choice::new(Action::Pass, Consequence::Winner(board.to_owned()))];
-        }
-
-        // Next we check if the player has been knocked out.
-        if loser(board) {
-            let new_grid = grid_from_move(board.grid(), Action::Pass);
-            let new_board = Board::new(
-                board.players().remove_current(), new_grid, 0
-            );
-            return vec![Choice::new(Action::Pass, Consequence::GameOver(new_board))];
-        }
-
-        // Lastly, we check if the game has been locked in a stalemate. This also ends
-        // the game but there is no winner. We haven't yet implemented scoring to determine
-        // a winner by points or a tie-breaker.
-        if stalemate(board) {
-            //println!("STALEMATE FOUND: {}", &board);
-            return vec![
-                Choice::new(Action::Pass, Consequence::Stalemate(board.to_owned()))
-            ];
-        }   
-    }
-
-    // Otherwise we continue.
-    let mut choices: Vec<Choice> = attacking_moves
-        .into_iter()
-        .map(|attack| {
-            let new_grid = grid_from_move(board.grid(), attack);
-            // TODO: Add dice captures.
-            let new_board = Board::new(*board.players(), new_grid, 0);
-            Choice::new(attack, Consequence::Continue(new_board))
-        })
-        .collect();
-
-    // And we tack on the passing move at the end.
-    let new_grid = grid_from_move(board.grid(), Action::Pass);
-    // TODO: Reinforcement calculations for the passing move.
-    let new_board = Board::new(board.players().next(), new_grid, 0);
-    choices.push(Choice::new(Action::Pass, Consequence::TurnOver(new_board)));
-
-    choices
-}
-*/
-
-/// Like `choices_from_board` above but does not add a passing move until there are no
-/// attacking moves left. This is to see if it reduces tree generation depth/breadth.
+/// Calculated all valid moves except the passing move until there are no
+/// attacking moves left. This greatly reduces the tree branches.
 pub (in crate::game) fn choices_from_board_only_pass_at_end(board: &Board) -> Vec<Choice> {
     let attacking_moves = all_legal_attacks_from(
         board.grid(), &board.players().current()

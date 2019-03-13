@@ -33,7 +33,7 @@ pub fn play_session(mut session: Session) {
         let available_choices = state.choices();
 
         if let Some(index) = handle_player_turn_input(available_choices.as_slice()) {
-            session.advance(&available_choices[index]).unwrap();
+            session.advance(index).unwrap();
         } else {
             println!("Quitting game. No Winner.");
             break;
@@ -42,7 +42,9 @@ pub fn play_session(mut session: Session) {
 }
 
 /// Passed in `Session` must have AI scoring enabled during setup.
-pub fn play_session_with_ai(mut session: Session, ai_players: HashSet<Player>) {
+pub fn play_session_with_ai(
+    mut session: Session, ai_players: HashSet<Player>, compute_horizon: usize,
+) {
     println!("Starting game session with {} AI players.", &ai_players.len());
 
     loop {        
@@ -70,13 +72,16 @@ pub fn play_session_with_ai(mut session: Session, ai_players: HashSet<Player>) {
 
         // 4. Check if the current player is an AI player.
         let choice = if ai_players.contains(&curr_player) {
-            handle_ai_turn(available_choices.as_slice())
+            drop(available_choices);
+            drop(state);
+            let state = session.score(compute_horizon);            
+            handle_ai_turn(state.choices().as_slice())
         } else {
             handle_player_turn_input(available_choices.as_slice())
         };
 
         if let Some(index) = choice {
-            session.advance(&available_choices[index]).unwrap();
+            session.advance(index).unwrap();
         } else {
             println!("Quitting game. No Winner.");
             break;
