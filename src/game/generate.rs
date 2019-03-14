@@ -6,15 +6,17 @@ use super::rules::choices_from_board_only_pass_at_end;
 
 /// Attemps construction of the entire tree. Can choke on 3x3 boards and will definitiely
 /// OOM on 4x4 boards and above.
-pub fn build_tree(root: Board) -> Tree {
-    let states = calculate_all_consequences(root.clone());
+pub fn build_tree(root: Board, move_limit: u8) -> Tree {
+    let states = calculate_all_consequences(root.clone(), move_limit);
     Tree::new(root, states)
 }
 
 /// Like above using brute force calculation to evaluate all board positions. But will stop
 /// at the depth indicated by `horizon`.
-pub fn start_tree_horizon_limited(root: Board, horizon: usize) -> Tree {
-    let states = calculate_consequences(root.clone(), horizon);
+pub fn start_tree_horizon_limited(
+    root: Board, horizon: usize, move_limit: u8
+) -> Tree {
+    let states = calculate_consequences(root.clone(), horizon, move_limit);
     Tree::new(root, states)
 }
 
@@ -24,19 +26,23 @@ pub fn start_tree_horizon_limited(root: Board, horizon: usize) -> Tree {
 ///
 /// **NOTE**, the first layer will always be computed otherwise valid choices from the
 /// start will be denied to the player. This is only an issue on insane 100x100 boards.
-pub fn start_tree_insert_budgeted(root: Board, board_budget: usize) -> Tree {
-    let states = calculate_consequences_insert_limited(root.clone(), board_budget);
+pub fn start_tree_insert_budgeted(
+    root: Board, board_budget: usize, move_limit: u8,
+) -> Tree {
+    let states = calculate_consequences_insert_limited(
+        root.clone(), board_budget, move_limit,
+    );
     Tree::new(root, states)
 }
 
 /// Adds to the sent tree. If the `Board` is not within the tree, it is returned as Err.
 pub fn grow_tree_horizon_limited(
-    from: Board, horizon: usize, tree: &mut Tree
+    from: Board, horizon: usize, tree: &mut Tree, move_limit: u8,
 ) -> Result<(), Board> {
     let _ = tree.fetch_choices(&from).ok_or_else(|| from.clone());
 
     // Fairly wasteful as many positions already calculated will be re-calculated.
-    let new_states = calculate_consequences(from, horizon);
+    let new_states = calculate_consequences(from, horizon, move_limit);
     tree.append(new_states);
     
     Ok(())
@@ -45,8 +51,10 @@ pub fn grow_tree_horizon_limited(
 /// Function will build all boardstates from `start`  inserting them into the `states` map.
 /// If the boardstate already exists will skip that boardstate. This function has no
 /// horizon so it won't stop generating until the stack is empty.
-pub fn calculate_all_consequences(start: Board) -> HashMap<Board, Vec<Choice>> {
-    let (tree, stats) = breadth_first_calc_consequences(start);
+pub fn calculate_all_consequences(
+    start: Board, move_limit: u8
+) -> HashMap<Board, Vec<Choice>> {
+    let (tree, stats) = breadth_first_calc_consequences(start, move_limit);
 
     stats
         .iter()
@@ -63,8 +71,10 @@ pub fn calculate_all_consequences(start: Board) -> HashMap<Board, Vec<Choice>> {
     tree
 }
 
-pub fn calculate_consequences(from: Board, horizon: usize) -> HashMap<Board, Vec<Choice>> {
-    let (tree, stats) = bounded_breadth_first_calc_consequences(from, horizon);
+pub fn calculate_consequences(
+    from: Board, horizon: usize, move_limit: u8,
+) -> HashMap<Board, Vec<Choice>> {
+    let (tree, stats) = bounded_breadth_first_calc_consequences(from, horizon, move_limit);
 
     stats
         .iter()
@@ -82,9 +92,11 @@ pub fn calculate_consequences(from: Board, horizon: usize) -> HashMap<Board, Vec
 }
 
 pub fn calculate_consequences_insert_limited(
-    from: Board, board_budget: usize,
+    from: Board, board_budget: usize, move_limit: u8,
 ) -> HashMap<Board, Vec<Choice>> {
-    let (tree, stats) = insert_budgeted_breadth_first_calc_consequences(from, board_budget);
+    let (tree, stats) = insert_budgeted_breadth_first_calc_consequences(
+        from, board_budget, move_limit,
+    );
 
     stats
         .iter()
@@ -106,7 +118,7 @@ pub fn calculate_consequences_insert_limited(
 /// layer will grow exponentially large but it will be easier to see how the dataset
 /// grows geometrically as the grid size/players increase linearly.
 fn breadth_first_calc_consequences(
-    start: Board
+    start: Board, move_limit: u8,
 ) -> (HashMap<Board, Vec<Choice>>, Vec<LayerStats>) {
     let mut states: HashMap<Board, Vec<Choice>> = HashMap::new();
     let mut current_layer: Option<Vec<Board>> = Some(vec![start]);
@@ -129,7 +141,7 @@ fn breadth_first_calc_consequences(
         let mut next_layer = Vec::new();
         for board in layer {
             if !states.contains_key(&board) {
-                let choices = choices_from_board_only_pass_at_end(&board);
+                let choices = choices_from_board_only_pass_at_end(&board, move_limit);
                 next_layer.extend(
                     choices
                         .iter()
@@ -152,7 +164,7 @@ fn breadth_first_calc_consequences(
 
 /// Brute force the tree with a horizon limit. Only calculate to the depth specified.
 fn bounded_breadth_first_calc_consequences(
-    start: Board, horizon: usize,
+    start: Board, horizon: usize, move_limit: u8,
 ) -> (HashMap<Board, Vec<Choice>>, Vec<LayerStats>) {
     let mut states: HashMap<Board, Vec<Choice>> = HashMap::new();
     let mut current_layer: Option<Vec<Board>> = Some(vec![start]);
@@ -175,7 +187,7 @@ fn bounded_breadth_first_calc_consequences(
         let mut next_layer = Vec::new();
         for board in layer {
             if !states.contains_key(&board) {
-                let choices = choices_from_board_only_pass_at_end(&board);
+                let choices = choices_from_board_only_pass_at_end(&board, move_limit);
                 next_layer.extend(
                     choices
                         .iter()
@@ -199,7 +211,7 @@ fn bounded_breadth_first_calc_consequences(
 /// Brute force the tree with a board insert limit. Only calculate to the boards specified.
 /// Will not cancel a partially computed depth layer.
 fn insert_budgeted_breadth_first_calc_consequences(
-    start: Board, boards: usize,
+    start: Board, boards: usize, move_limit: u8,
 ) -> (HashMap<Board, Vec<Choice>>, Vec<LayerStats>) {
     let mut spent: usize = 0;
     let mut states: HashMap<Board, Vec<Choice>> = HashMap::new();
@@ -223,7 +235,7 @@ fn insert_budgeted_breadth_first_calc_consequences(
         let mut next_layer = Vec::new();
         for board in layer {
             if !states.contains_key(&board) {
-                let choices = choices_from_board_only_pass_at_end(&board);
+                let choices = choices_from_board_only_pass_at_end(&board, move_limit);
                 next_layer.extend(
                     choices
                         .iter()

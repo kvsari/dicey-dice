@@ -9,12 +9,16 @@ const MAX_DICE: u8 = 5;
 
 /// Calculated all valid moves except the passing move until there are no
 /// attacking moves left. This greatly reduces the tree branches.
-pub (in crate::game) fn choices_from_board_only_pass_at_end(board: &Board) -> Vec<Choice> {
+pub (in crate::game) fn choices_from_board_only_pass_at_end(
+    board: &Board, move_limit: u8,
+) -> Vec<Choice> {
     let attacking_moves = all_legal_attacks_from(
         board.grid(), &board.players().current()
     );
 
     let mut choices: Vec<Choice> = Vec::new();
+    let moved = *board.moved() + 1;
+    //println!("Calculating.... Moved: {}, Limit: {}", &moved, &move_limit);
 
     // If there are no attacking moves, we quickly check if the player has won or lost.
     if attacking_moves.is_empty() {
@@ -27,7 +31,7 @@ pub (in crate::game) fn choices_from_board_only_pass_at_end(board: &Board) -> Ve
         if loser(board) {
             let new_grid = grid_from_move(board.grid(), Action::Pass);
             let new_board = Board::new(
-                board.players().remove_current(), new_grid, 0
+                board.players().remove_current(), new_grid, 0, 0
             );
             return vec![Choice::new(Action::Pass, Consequence::GameOver(new_board))];
         }
@@ -45,8 +49,15 @@ pub (in crate::game) fn choices_from_board_only_pass_at_end(board: &Board) -> Ve
         let new_grid = reinforce02(
             board.grid(), board.players().current(), *board.captured_dice(),
         );
-        let new_board = Board::new(board.players().next(), new_grid, 0);
-        choices.push(Choice::new(Action::Pass, Consequence::TurnOver(new_board)));
+        let new_board = Board::new(board.players().next(), new_grid, 0, 0);
+        choices.push(Choice::new(Action::Pass, Consequence::TurnOver(new_board))); 
+    } else if moved > move_limit {
+        // If we have exceeded the move limit, we pass.
+        let new_grid = reinforce02(
+            board.grid(), board.players().current(), *board.captured_dice(),
+        );
+        let new_board = Board::new(board.players().next(), new_grid, 0, 0);
+        return vec![Choice::new(Action::Pass, Consequence::TurnOver(new_board))];
     }
 
     // Process attacking moves. This is functionally skipped if there are none.
@@ -57,7 +68,9 @@ pub (in crate::game) fn choices_from_board_only_pass_at_end(board: &Board) -> Ve
             .map(|attack| {
                 let new_grid = grid_from_move(board.grid(), attack);
                 let total_captured = captured_dice + attack.capturing();
-                let new_board = Board::new(*board.players(), new_grid, total_captured);
+                let new_board = Board::new(
+                    *board.players(), new_grid, total_captured, moved,
+                );
                 Choice::new(attack, Consequence::Continue(new_board))
             })
             .collect::<Vec<Choice>>()

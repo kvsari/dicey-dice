@@ -34,7 +34,7 @@ pub fn generate_random_grid(columns: u32, rows: u32, players: Players) -> Grid<H
 
 pub fn generate_random_board(columns: u32, rows: u32, players: Players) -> Board {
     let grid = generate_random_grid(columns, rows, players);
-    Board::new(players, grid, 0)
+    Board::new(players, grid, 0, 0)
 }
 
 /// Used for testing edge cases more than anything else.
@@ -46,7 +46,7 @@ pub fn canned_1x1_start() -> Board {
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
     let grid = grid.change_to_rectangle(1, 1);
-    Board::new(players, grid, 0)
+    Board::new(players, grid, 0, 0)
 }
 
 /// Single line board more for testing purposes than actual play. Player 'A' is destined
@@ -60,7 +60,7 @@ pub fn canned_2x1_start01() -> Board {
         (Cube::from((1, 0)), Hold::new(player2, 3)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
-    Board::new(players, grid.change_to_rectangle(2, 1), 0)
+    Board::new(players, grid.change_to_rectangle(2, 1), 0, 0)
 }
 
 /// Game is an instant stalemate.
@@ -73,7 +73,7 @@ pub fn canned_2x1_start02() -> Board {
         (Cube::from((1, 0)), Hold::new(player2, 1)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
-    Board::new(players, grid.change_to_rectangle(2, 1), 0)
+    Board::new(players, grid.change_to_rectangle(2, 1), 0, 0)
 }
 
 /// Game is a clear winner for player 'A'
@@ -85,7 +85,7 @@ pub fn canned_2x1_start03() -> Board {
         (Cube::from((1, 0)), Hold::new(player1, 5)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
-    Board::new(players, grid.change_to_rectangle(2, 1), 0)
+    Board::new(players, grid.change_to_rectangle(2, 1), 0, 0)
 }
 
 /// Single line board more for testing purposes than actual play.
@@ -99,7 +99,7 @@ pub fn canned_3x1_start01() -> Board {
         (Cube::from((2, 0)), Hold::new(player1, 3)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
-    Board::new(players, grid.change_to_rectangle(3, 1), 0)
+    Board::new(players, grid.change_to_rectangle(3, 1), 0, 0)
 }
 
 /// Clear winner!
@@ -112,7 +112,7 @@ pub fn canned_3x1_start02() -> Board {
         (Cube::from((2, 0)), Hold::new(player2, 3)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
-    Board::new(players, grid.change_to_rectangle(3, 1), 0)
+    Board::new(players, grid.change_to_rectangle(3, 1), 0, 0)
 }
 
 /// Instant stalemate
@@ -126,7 +126,7 @@ pub fn canned_3x1_start03() -> Board {
         (Cube::from((2, 0)), Hold::new(player1, 1)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
-    Board::new(players, grid.change_to_rectangle(3, 1), 0)
+    Board::new(players, grid.change_to_rectangle(3, 1), 0, 0)
 }
 
 /// 3 player stalemate
@@ -141,7 +141,7 @@ pub fn canned_3x1_start04() -> Board {
         (Cube::from((2, 0)), Hold::new(player3, 1)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
-    Board::new(players, grid.change_to_rectangle(3, 1), 0)
+    Board::new(players, grid.change_to_rectangle(3, 1), 0, 0)
 }
 
 /// 3 player game
@@ -156,7 +156,7 @@ pub fn canned_3x1_start05() -> Board {
         (Cube::from((2, 0)), Hold::new(player3, 3)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
-    Board::new(players, grid.change_to_rectangle(3, 1), 0)
+    Board::new(players, grid.change_to_rectangle(3, 1), 0, 0)
 }
 
 /// Board where player A has no attacking moves and will lose.
@@ -171,7 +171,7 @@ pub fn canned_2x2_start01() -> Board {
         (Cube::from((1, 1)), Hold::new(player2, 5)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
-    Board::new(players, grid.change_to_rectangle(2, 2), 0)
+    Board::new(players, grid.change_to_rectangle(2, 2), 0, 0)
 }
 
 /// Board where player A has one attacking move.
@@ -186,7 +186,7 @@ pub fn canned_2x2_start02() -> Board {
         (Cube::from((1, 1)), Hold::new(player2, 5)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
-    Board::new(players, grid.change_to_rectangle(2, 2), 0)
+    Board::new(players, grid.change_to_rectangle(2, 2), 0, 0)
 }
 
 /// Board where player A has two attacking moves.
@@ -201,7 +201,7 @@ pub fn canned_2x2_start03() -> Board {
         (Cube::from((1, 1)), Hold::new(player2, 5)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
-    Board::new(players, grid.change_to_rectangle(2, 2), 0)
+    Board::new(players, grid.change_to_rectangle(2, 2), 0, 0)
 }
 
 /// Board where Player A and Player B will battle. Player A can win, but if he makes a
@@ -217,7 +217,7 @@ pub fn canned_2x2_start04() -> Board {
         (Cube::from((1, 1)), Hold::new(player2, 3)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
-    Board::new(players, grid.change_to_rectangle(2, 2), 0)
+    Board::new(players, grid.change_to_rectangle(2, 2), 0, 0)
 }
 
 pub fn canned_3x2_start01() -> Board {
@@ -233,7 +233,7 @@ pub fn canned_3x2_start01() -> Board {
         (Cube::from((2, 1)), Hold::new(player2, 5)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
-    Board::new(players, grid.change_to_rectangle(3, 2), 0)
+    Board::new(players, grid.change_to_rectangle(3, 2), 0, 0)
 }
 
 /// Anything higher than this exposes an inneficiency in the movement scoring algorithm.
@@ -250,7 +250,7 @@ pub fn canned_3x2_start02() -> Board {
         (Cube::from((2, 1)), Hold::new(player2, 4)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
-    Board::new(players, grid.change_to_rectangle(3, 2), 0)
+    Board::new(players, grid.change_to_rectangle(3, 2), 0, 0)
 }
 
 /// A more serious board that consumes quite some resources but can be evaluated.
@@ -270,7 +270,7 @@ pub fn canned_3x3_start01() -> Board {
         (Cube::from((1, 2)), Hold::new(player2, 1)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
-    Board::new(players, grid.change_to_rectangle(3, 3), 0)
+    Board::new(players, grid.change_to_rectangle(3, 3), 0, 0)
 }
 
 /// Board where player A is one move away from entering a stalemate with player B.
@@ -290,7 +290,7 @@ pub fn canned_3x3_start02() -> Board {
         (Cube::from((1, 2)), Hold::new(player1, 1)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
-    Board::new(players, grid.change_to_rectangle(3, 3), 0)
+    Board::new(players, grid.change_to_rectangle(3, 3), 0, 0)
 }
 
 pub fn canned_3x3_start03() -> Board {
@@ -309,5 +309,5 @@ pub fn canned_3x3_start03() -> Board {
         (Cube::from((1, 2)), Hold::new(player1, 5)),
     ];
     let grid: Grid<Hold> = hexes.into_iter().collect();
-    Board::new(players, grid.change_to_rectangle(3, 3), 0)
+    Board::new(players, grid.change_to_rectangle(3, 3), 0, 0)
 }

@@ -1,4 +1,5 @@
 //! Handle a game.
+use std::num::NonZeroU8;
 
 use derive_getters::Getters;
 
@@ -141,10 +142,11 @@ fn state_from_board(board: &Board, tree: &Tree) -> Result<State, usize> {
 pub struct Session {
     turns: Vec<State>,
     tree: Option<Tree>,
+    move_limit: NonZeroU8,
 }
 
 impl Session {
-    pub fn new(start: Board, tree: Tree) -> Self {
+    pub fn new(start: Board, tree: Tree, move_limit: NonZeroU8) -> Self {
         // The start may contain pass move. Cycle to get at the first true turn.
         // This code is a copy of what's happening in `advance` below. TODO: Refactor me.
         let mut tree = Some(tree);
@@ -152,7 +154,9 @@ impl Session {
             match state_from_board(&start, tree.as_ref().unwrap()) {
                 Ok(state) => break state,
                 Err(depth) => {
-                    let new_tree = game::start_tree_horizon_limited(start.clone(), depth);
+                    let new_tree = game::start_tree_horizon_limited(
+                        start.clone(), depth, move_limit.get(),
+                    );
                     tree = Some(new_tree);
                 },
             }
@@ -161,12 +165,17 @@ impl Session {
         Session {
             turns: vec![first_turn],
             tree,
+            move_limit,
         }
     }
 
     pub fn reset(self) -> Self {
         let first = self.turns.first().unwrap().board.to_owned();
-        Session::new(first.clone(), game::start_tree_horizon_limited(first, 1))
+        Session::new(
+            first.clone(),
+            game::start_tree_horizon_limited(first, 1, self.move_limit.get()),
+            self.move_limit,
+        )
     }
             
     pub fn current_turn(&self) -> &State {
@@ -189,7 +198,7 @@ impl Session {
                 Ok(state) => break state,
                 Err(depth) => {
                     let new_tree = game::start_tree_horizon_limited(
-                        board.to_owned(), depth
+                        board.to_owned(), depth, self.move_limit.get(),
                     );
                     self.tree = Some(new_tree);
                 },
@@ -205,7 +214,9 @@ impl Session {
     /// system to lock up. High chance that an OOM error will follow.
     pub fn score_with_depth_horizon(&mut self, horizon: usize) -> &State {
         let current_board = self.current_turn().board.to_owned();
-        let tree = game::start_tree_horizon_limited(current_board, horizon);
+        let tree = game::start_tree_horizon_limited(
+            current_board, horizon, self.move_limit.get(),
+        );
         
         let _ = game::score_tree(&tree);
         let choices = tree.fetch_choices(tree.root()).unwrap().to_owned();
@@ -220,7 +231,9 @@ impl Session {
     /// always be all available choices for the turn.
     pub fn score_with_insert_budget(&mut self, insert_budget: usize) -> &State {
         let current_board = self.current_turn().board.to_owned();
-        let tree = game::start_tree_insert_budgeted(current_board, insert_budget);
+        let tree = game::start_tree_insert_budgeted(
+            current_board, insert_budget, self.move_limit.get(),
+        );
         
         let _ = game::score_tree(&tree);
         let choices = tree.fetch_choices(tree.root()).unwrap().to_owned();
@@ -237,6 +250,7 @@ impl Session {
 pub struct Setup {
     players: Players,
     board: Option<Board>,
+    move_limit: NonZeroU8,
 }
 
 impl Setup {
@@ -244,6 +258,7 @@ impl Setup {
         Setup {
             players: Players::new(2),
             board: None,
+            move_limit: NonZeroU8::new(6).unwrap(),
         }
     }
 
@@ -254,7 +269,12 @@ impl Setup {
         }
         self.players = players;
         self
-    }    
+    }
+
+    pub fn set_move_limit(&mut self, move_limit: NonZeroU8) -> &mut Self {
+        self.move_limit = move_limit;
+        self
+    }
 
     /// Set the board. This will also set the players since the `Board` lists all state.
     pub fn set_board(&mut self, board: Board) -> &mut Self {
@@ -274,8 +294,9 @@ impl Setup {
     /// 'solve' the game by resolving the entire tree of every possible action.
     pub fn session(&self) -> Result<Session, String> {
         if let Some(board) = self.board.clone() {
-            let tree = game::start_tree_horizon_limited(board.clone(), 1);
-            Ok(Session::new(board, tree))
+            let tree = game::start_tree_horizon_limited(
+                board.clone(), 1, self.move_limit.get());
+            Ok(Session::new(board, tree, self.move_limit))
         } else {
             Err("No board set.".to_owned())
         }

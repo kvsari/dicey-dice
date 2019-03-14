@@ -48,11 +48,12 @@ pub struct Board {
     players: Players,
     grid: Grid<Hold>,
     captured_dice: u8,
+    moved: u8,
 }
 
 impl Board {
-    pub fn new(players: Players, grid: Grid<Hold>, captured_dice: u8) -> Self {
-        Board { players, grid, captured_dice }
+    pub fn new(players: Players, grid: Grid<Hold>, captured_dice: u8, moved: u8) -> Self {
+        Board { players, grid, captured_dice, moved }
     }
 }
 
@@ -60,9 +61,11 @@ impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "Current Player: {}\nCaptured Dice: {}\nBoard =============\n{}",
+            "Current Player: {}\nCaptured Dice: {}, Moved: {} time(s). \
+             \nBoard =============\n{}",
             &self.players.current(),
             &self.captured_dice,
+            &self.moved,
             &self.grid,
         )
     }
