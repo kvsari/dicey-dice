@@ -1,16 +1,75 @@
 //! Handle a game.
 use std::num::NonZeroU8;
+use std::fmt;
 
 use derive_getters::Getters;
+use rand::{rngs, Rng};
 
 use crate::game::{self, Tree, Board, Players, Player, Choice, Action, Consequence};
 
-static HORIZON: usize = 50;
+fn roll_d6s<T: Rng>(d6s: u8, random: &mut T) -> usize {
+    (0..d6s)
+        .fold(0, |sum, _| -> usize {
+            sum + random.gen_range(1, 7)
+        })
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct LastAttack {
+    attacker_dice: u8,
+    attacker_rolled: usize,
+    defender_dice: u8,
+    defender_rolled: usize,
+}
+
+impl LastAttack {
+    fn new(
+        attacker_dice: u8, attacker_rolled: usize, defender_dice: u8, defender_rolled: usize
+    ) -> Self {
+        LastAttack { attacker_dice, attacker_rolled, defender_dice, defender_rolled }
+    }
+}
+
+impl fmt::Display for LastAttack {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.attacker_rolled == 0 && self.defender_rolled == 0 {
+            write!(f, "") // Sentinel value for first turn thus no preceding attacks.
+        } else {
+            if self.attacker_rolled > self.defender_rolled {
+                write!(
+                    f,
+                    "Attacker with {} dice rolled {} beating \
+                     defender with {} dice who rolled {}.",
+                    &self.attacker_dice,
+                    &self.attacker_rolled,
+                    &self.defender_dice,
+                    &self.defender_rolled,
+                )
+            } else {
+                write!(
+                    f,
+                    "Defender with {} dice rolled {} holding against \
+                     attacker with {} dice who rolled {}.",
+                    &self.defender_dice,
+                    &self.defender_rolled,
+                    &self.attacker_dice,
+                    &self.attacker_rolled,
+                )
+            }
+        }
+    }
+}
+
+impl Default for LastAttack {
+    fn default() -> Self {
+        LastAttack::new(0, 0, 0, 0)
+    }
+}
 
 /// State of game progression. Whether the game is on, over and what kind of over.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Progression {
-    PlayOn,
+    PlayOn(LastAttack),
     GameOverWinner(Player),
     GameOverStalemate(Vec<Player>), // Easier to calculate than a draw...
 }
@@ -57,9 +116,10 @@ impl State {
 /// Generate a `State` from a chosen `Board` consequence and the `Tree` where that `Board`
 /// must exist. Runs inside a loop skipping over states that have only one turn left in
 /// them except for Winning states. Uses some logic to detect draw states.
-fn state_from_board(board: &Board, tree: &Tree) -> Result<State, usize> {
+fn state_from_board(
+    mut current_board: Board, tree: &Tree, outcome: LastAttack,
+) -> Result<State, usize> {
     let mut traversal: Vec<(Board, Choice)> = Vec::new();   
-    let mut current_board = board.to_owned();
     let mut depth: usize = 1;
     
     let state = loop {
@@ -72,12 +132,12 @@ fn state_from_board(board: &Board, tree: &Tree) -> Result<State, usize> {
         if choices.len() == 1 {
             depth += 1;
             match choices[0].action() {
-                Action::Attack(_, _, _) => {
+                Action::Attack(_, _, _, _) => {
                     // There is one last attack to make. We won't execute this choice
                     // for the player as that'd be overstepping our bounds. Thus we jump
                     // out of this loop.
                     break State::new(
-                        Progression::PlayOn,
+                        Progression::PlayOn(outcome),
                         traversal.as_slice(),
                         current_board,
                         choices,
@@ -121,7 +181,7 @@ fn state_from_board(board: &Board, tree: &Tree) -> Result<State, usize> {
 
         // If we make it here, there are choices that need to be made.
         break State::new(
-            Progression::PlayOn,
+            Progression::PlayOn(outcome),
             traversal.as_slice(),
             current_board,
             choices,
@@ -143,15 +203,19 @@ pub struct Session {
     turns: Vec<State>,
     tree: Option<Tree>,
     move_limit: NonZeroU8,
+    rand: rngs::ThreadRng,
 }
 
 impl Session {
     pub fn new(start: Board, tree: Tree, move_limit: NonZeroU8) -> Self {
         // The start may contain pass move. Cycle to get at the first true turn.
         // This code is a copy of what's happening in `advance` below. TODO: Refactor me.
+        
         let mut tree = Some(tree);
         let first_turn = loop {
-            match state_from_board(&start, tree.as_ref().unwrap()) {
+            match state_from_board(
+                start.clone(), tree.as_ref().unwrap(), LastAttack::default()
+            ) {
                 Ok(state) => break state,
                 Err(depth) => {
                     let new_tree = game::start_tree_horizon_limited(
@@ -166,6 +230,7 @@ impl Session {
             turns: vec![first_turn],
             tree,
             move_limit,
+            rand: rand::thread_rng(),
         }
     }
 
@@ -183,7 +248,7 @@ impl Session {
     }
 
     /// Take an `Action` and advance the game state. Advances the tree if necessary. Takes
-    /// an `index` of the `[Choice]`.
+    /// an `index` of the `[Choice]`. The `Choice` will always be an attacking action.
     pub fn advance(&mut self, index: usize) -> Result<&State, String> {
         let choice = self
             .current_turn()
@@ -191,14 +256,42 @@ impl Session {
             .get(index)
             .ok_or("Index out of bounds.".to_owned())?
             .to_owned();
+
+        let (attacker_coordinate, attacker_dice, defender_dice) = match choice.action() {
+            Action::Attack(ac, _, ad, dd) => (*ac, *ad, *dd),
+            Action::Pass => unreachable!(), // Must never happen. `Session` must always
+                                            // return with attack choices or game over.
+        };
+
+        let attacker_roll = roll_d6s(attacker_dice, &mut self.rand);
+        let defender_roll = roll_d6s(defender_dice, &mut self.rand);
+
+        let outcome = LastAttack::new(
+            attacker_dice, attacker_roll, defender_dice, defender_roll
+        );
         
-        let board = choice.consequence().board();
+        let next_board = if attacker_roll > defender_roll {
+            // Board advances due to win.
+            choice.consequence().board().to_owned()
+        } else {
+            // Board stays the same sans one move due to loss.
+            let current_board = &self.current_turn().board;
+            Board::new(
+                *current_board.players(),
+                current_board.grid().to_owned(),
+                *current_board.captured_dice(),
+                *current_board.moved() + 1,
+            )
+        };
+        
         let state = loop {
-            match state_from_board(board, &self.tree.as_ref().unwrap()) {
+            match state_from_board(
+                next_board.clone(), &self.tree.as_ref().unwrap(), outcome,
+            ) {
                 Ok(state) => break state,
                 Err(depth) => {
                     let new_tree = game::start_tree_horizon_limited(
-                        board.to_owned(), depth, self.move_limit.get(),
+                        next_board.to_owned(), depth, self.move_limit.get(),
                     );
                     self.tree = Some(new_tree);
                 },

@@ -192,10 +192,13 @@ fn all_legal_attacks_from(grid: &Grid<Hold>, player: &Player) -> Vec<Action> {
                                     //dbg!(d);
                                     if d.owner() != player {
                                         // We have an enemy tile. We count dice.
-                                        if d.dice() < hold.dice() {
+                                        if hold.dice() > &1 && d.dice() <= hold.dice() {
                                             // Player has more dice! 
                                             Some(Action::Attack(
-                                                coordinate, *neighbour, *d.dice(),
+                                                coordinate,
+                                                *neighbour,
+                                                *hold.dice(),
+                                                *d.dice(),
                                             ))
                                         } else {
                                             // Player doesn't have enough dice.
@@ -219,7 +222,7 @@ fn all_legal_attacks_from(grid: &Grid<Hold>, player: &Player) -> Vec<Action> {
 fn grid_from_move(grid: &Grid<Hold>, movement: Action) -> Grid<Hold> {
     match movement {
         Action::Pass => grid.to_owned(),
-        Action::Attack(from, to, _) => attacking_move(grid, from, to),
+        Action::Attack(from, to, _, _) => attacking_move(grid, from, to),
     }
 }
 

@@ -18,7 +18,7 @@ pub fn play_session(mut session: Session) {
         
         // 2. Check if we game on.
         match state.game() {
-            Progression::PlayOn => (),
+            Progression::PlayOn(outcome) => println!("{}", &outcome),
             Progression::GameOverWinner(player) => {
                 println!("Game Over\nWinner is {}", &player);
                 break;
@@ -55,7 +55,7 @@ pub fn play_session_with_ai(
         
         // 2. Check if we game on.
         match state.game() {
-            Progression::PlayOn => (),
+            Progression::PlayOn(outcome) => println!("{}", &outcome),
             Progression::GameOverWinner(player) => {
                 println!("Game Over\nWinner is {}", &player);
                 break;
