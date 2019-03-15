@@ -179,7 +179,7 @@ fn all_legal_attacks_from(grid: &Grid<Hold>, player: &Player) -> Vec<Action> {
             let coordinate = *hex_tile.coordinate();
             let hold = *hex_tile.data();
 
-            if hold.owner() == player {
+            if hold.owner() == player && *hold.mobile() {
                 moves.extend(
                     coordinate
                         .neighbours()
@@ -233,8 +233,8 @@ fn attacking_move(grid: &Grid<Hold>, from: Cube, to: Cube) -> Grid<Hold> {
     let (to_hold, from_hold) = grid
         .fetch(&from)
         .map(|h| (
-            Hold::new(*h.owner(), *h.dice() - 1),
-            Hold::new(*h.owner(), 1)
+            Hold::new(*h.owner(), *h.dice() - 1, *h.mobile()),
+            Hold::new(*h.owner(), 1, *h.mobile())
         ))
         .expect("Invalid from coordinate.");
 
@@ -301,7 +301,7 @@ fn reinforce02(grid: &Grid<Hold>, player: Player, reinforcements: u8) -> Grid<Ho
                 reinforcements = 0;
                 diff
             };
-            Hold::new(player, dice + add)
+            Hold::new(player, dice + add, true)
         } else {
             hold
         }

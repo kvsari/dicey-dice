@@ -274,11 +274,20 @@ impl Session {
             // Board advances due to win.
             choice.consequence().board().to_owned()
         } else {
-            // Board stays the same sans one move due to loss.
+            // Board stays the same sans one move due to loss and the losing hex frozen.
             let current_board = &self.current_turn().board;
             Board::new(
                 *current_board.players(),
-                current_board.grid().to_owned(),
+                current_board
+                    .grid()
+                    .fork_with(|coordinate, hold| {
+                        // Freeze the losing hex til next turn.
+                        if coordinate == &attacker_coordinate {
+                            game::model::Hold::new(*hold.owner(), *hold.dice(), false)
+                        } else {
+                            hold
+                        }
+                    }),
                 *current_board.captured_dice(),
                 *current_board.moved() + 1,
             )

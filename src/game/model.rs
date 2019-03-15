@@ -22,25 +22,30 @@ pub struct Hold {
 
     /// We're assuming D6's here.
     dice: u8,
+
+    /// Barred from moving if false
+    mobile: bool,
 }
 
 impl Hold {
-    pub fn new(owner: Player, dice: u8) -> Hold {
-        Hold {
-            owner, dice
-        }
+    pub fn new(owner: Player, dice: u8, mobile: bool) -> Hold {
+        Hold { owner, dice, mobile }
     }
 }
 
 impl fmt::Display for Hold {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}|{}", &self.owner, &self.dice)
+        if self.mobile {
+            write!(f, "{}|{}", &self.owner, &self.dice)
+        } else {
+            write!(f, "{}#{}", &self.owner, &self.dice)
+        }
     }
 }
 
 impl Default for Hold {
     fn default() -> Self {
-        Hold::new(Player::default(), 0)
+        Hold::new(Player::default(), 0, true)
     }
 }
 
