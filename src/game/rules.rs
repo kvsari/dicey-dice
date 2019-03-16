@@ -168,7 +168,7 @@ fn stalemate(board: &Board) -> bool {
 }
 
 /// Produces all legal attacking moves with the amount of dice they would capture.
-fn all_legal_attacks_from(grid: &Grid<Hold>, player: &Player) -> Vec<Action> {
+fn all_legal_attacks_from(grid: &Grid<u8>, player: &Player) -> Vec<Action> {
     grid.iter()
         .fold(Vec::new(), |mut moves, hex_tile| {
             //dbg!(hex_tile);
@@ -215,7 +215,7 @@ fn all_legal_attacks_from(grid: &Grid<Hold>, player: &Player) -> Vec<Action> {
 
 /// Generates a new grid that bears the consequences of the supplied movement. Doesn't
 /// check if the move is legal.
-fn grid_from_move(grid: &Grid<Hold>, movement: Action) -> Grid<Hold> {
+fn grid_from_move(grid: &Grid<u8>, movement: Action) -> Grid<u8> {
     match movement {
         Action::Pass => grid.to_owned(),
         Action::Attack(from, to, _, _) => attacking_move(grid, from, to),
@@ -225,12 +225,12 @@ fn grid_from_move(grid: &Grid<Hold>, movement: Action) -> Grid<Hold> {
 /// An attacking move that removes all the dice except one from the `from` hexagon and
 /// places them minus one to the `to` tile. There is no error checking as this function
 /// expects correct parameters to be entered. Thus invalid data will cause a panic.
-fn attacking_move(grid: &Grid<Hold>, from: Cube, to: Cube) -> Grid<Hold> {
+fn attacking_move(grid: &Grid<u8>, from: Cube, to: Cube) -> Grid<u8> {
     let (to_hold, from_hold) = grid
         .fetch(&from)
         .map(|h| (
-            Hold::new(h.owner(), h.dice() - 1, h.mobile()),
-            Hold::new(h.owner(), 1, h.mobile())
+            u8::new(h.owner(), h.dice() - 1, h.mobile()),
+            u8::new(h.owner(), 1, h.mobile())
         ))
         .expect("Invalid from coordinate.");
 
@@ -280,7 +280,7 @@ fn reinforce01(grid: &Grid<Hold>, player: Player, reinforcements: u8) -> Grid<Ho
 ///
 /// The reinforcements will be doled out super simple. It will simply add them from the
 /// top leftmost of any player holdings downwards.
-fn reinforce02(grid: &Grid<Hold>, player: Player, reinforcements: u8) -> Grid<Hold> {
+fn reinforce02(grid: &Grid<u8>, player: Player, reinforcements: u8) -> Grid<u8> {
     let mut reinforcements = reinforcements
         .checked_sub(1)
         .unwrap_or(0);
@@ -297,7 +297,7 @@ fn reinforce02(grid: &Grid<Hold>, player: Player, reinforcements: u8) -> Grid<Ho
                 reinforcements = 0;
                 diff
             };
-            Hold::new(player, dice + add, true)
+            u8::new(player, dice + add, true)
         } else {
             hold
         }
@@ -313,8 +313,8 @@ mod test {
     #[test]
     fn winner_wins() {
         let players = Players::new(2);
-        let grid: Grid<Hold> = Rectangular::generate(
-            100, 100, Hold::new(players.current(), 1, true)
+        let grid: Grid<u8> = Rectangular::generate(
+            100, 100, u8::new(players.current(), 1, true)
         ).into();
 
         let board = Board::new(players, grid, 0, 0);
@@ -325,8 +325,8 @@ mod test {
     #[test]
     fn loser_loses() {
         let players = Players::new(2);
-        let grid: Grid<Hold> = Rectangular::generate(
-            100, 100, Hold::new(players.current(), 1, true)
+        let grid: Grid<u8> = Rectangular::generate(
+            100, 100, u8::new(players.current(), 1, true)
         ).into();
 
         let board = Board::new(players.next(), grid, 0, 0);
@@ -387,11 +387,11 @@ mod test {
         let player1 = Player::new(1, 'A');
         let player2 = Player::new(2, 'B');
         let players = Players::new(2);
-        let hexes: Vec<(Cube, Hold)> = vec![
-            ((0, 0).into(), Hold::new(player1, 2, true)),
-            ((0, 1).into(), Hold::new(player2, 1, true)),
+        let hexes: Vec<(Cube, u8)> = vec![
+            ((0, 0).into(), u8::new(player1, 2, true)),
+            ((0, 1).into(), u8::new(player2, 1, true)),
         ];
-        let grid: Grid<Hold> = hexes.into_iter().collect();
+        let grid: Grid<u8> = hexes.into_iter().collect();
         let grid = grid.change_to_rectangle(2, 1);
         let board = Board::new(players, grid, 0, 0);
 
@@ -405,11 +405,11 @@ mod test {
         let player1 = Player::new(1, 'A');
         let player2 = Player::new(2, 'B');
         let players = Players::new(2);
-        let hexes: Vec<(Cube, Hold)> = vec![
-            ((0, 0).into(), Hold::new(player1, 1, true)),
-            ((0, 1).into(), Hold::new(player2, 2, true)),
+        let hexes: Vec<(Cube, u8)> = vec![
+            ((0, 0).into(), u8::new(player1, 1, true)),
+            ((0, 1).into(), u8::new(player2, 2, true)),
         ];
-        let grid: Grid<Hold> = hexes.into_iter().collect();
+        let grid: Grid<u8> = hexes.into_iter().collect();
         let grid = grid.change_to_rectangle(2, 1);
         let board = Board::new(players, grid, 0, 0);
 
@@ -423,13 +423,13 @@ mod test {
         let player1 = Player::new(1, 'A');
         let player2 = Player::new(2, 'B');
         let players = Players::new(2);
-        let hexes: Vec<(Cube, Hold)> = vec![
-            ((0, 0).into(), Hold::new(player1, 2, true)),
-            ((0, 1).into(), Hold::new(player2, 2, true)),
-            ((1, 0).into(), Hold::new(player1, 2, true)),
-            ((1, 1).into(), Hold::new(player2, 2, true)),
+        let hexes: Vec<(Cube, u8)> = vec![
+            ((0, 0).into(), u8::new(player1, 2, true)),
+            ((0, 1).into(), u8::new(player2, 2, true)),
+            ((1, 0).into(), u8::new(player1, 2, true)),
+            ((1, 1).into(), u8::new(player2, 2, true)),
         ];
-        let grid: Grid<Hold> = hexes.into_iter().collect();
+        let grid: Grid<u8> = hexes.into_iter().collect();
         let grid = grid.change_to_rectangle(2, 2);
         let board = Board::new(players, grid, 0, 0);
 
@@ -454,11 +454,11 @@ mod test {
         let player1 = Player::new(1, 'A');
         let player2 = Player::new(2, 'B');
         let players = Players::new(2);
-        let hexes: Vec<(Cube, Hold)> = vec![
-            ((0, 0).into(), Hold::new(player1, 1, true)),
-            ((0, 1).into(), Hold::new(player2, 1, true)),
+        let hexes: Vec<(Cube, u8)> = vec![
+            ((0, 0).into(), u8::new(player1, 1, true)),
+            ((0, 1).into(), u8::new(player2, 1, true)),
         ];
-        let grid: Grid<Hold> = hexes.into_iter().collect();
+        let grid: Grid<u8> = hexes.into_iter().collect();
         let grid = grid.change_to_rectangle(2, 1);
         let board = Board::new(players, grid, 0, 0);
 
@@ -472,13 +472,13 @@ mod test {
         let player1 = Player::new(1, 'A');
         let player2 = Player::new(2, 'B');
         let players = Players::new(2);
-        let hexes: Vec<(Cube, Hold)> = vec![
-            ((0, 0).into(), Hold::new(player1, 1, true)),
-            ((0, 1).into(), Hold::new(player2, 1, true)),
-            ((1, 0).into(), Hold::new(player1, 1, true)),
-            ((1, 1).into(), Hold::new(player2, 1, true)),
+        let hexes: Vec<(Cube, u8)> = vec![
+            ((0, 0).into(), u8::new(player1, 1, true)),
+            ((0, 1).into(), u8::new(player2, 1, true)),
+            ((1, 0).into(), u8::new(player1, 1, true)),
+            ((1, 1).into(), u8::new(player2, 1, true)),
         ];
-        let grid: Grid<Hold> = hexes.into_iter().collect();
+        let grid: Grid<u8> = hexes.into_iter().collect();
         let grid = grid.change_to_rectangle(2, 2);
         let board = Board::new(players, grid, 0, 0);
 
@@ -494,18 +494,18 @@ mod test {
         let player1 = Player::new(1, 'A');
         let player2 = Player::new(2, 'B');
         let players = Players::new(2);
-        let hexes: Vec<(Cube, Hold)> = vec![
-            (Cube::from((0, 0)), Hold::new(player1, 1, true)),
-            (Cube::from((1, 0)), Hold::new(player2, 1, true)),
-            (Cube::from((2, 0)), Hold::new(player1, 1, true)),
-            (Cube::from((0, 1)), Hold::new(player1, 1, true)),
-            (Cube::from((1, 1)), Hold::new(player1, 1, true)),
-            (Cube::from((2, 1)), Hold::new(player1, 1, true)),
-            (Cube::from((0, 2)), Hold::new(player1, 2, true)),
-            (Cube::from((1, 2)), Hold::new(player1, 5, true)),
-            (Cube::from((2, 0)), Hold::new(player1, 1, true)),
+        let hexes: Vec<(Cube, u8)> = vec![
+            (Cube::from((0, 0)), u8::new(player1, 1, true)),
+            (Cube::from((1, 0)), u8::new(player2, 1, true)),
+            (Cube::from((2, 0)), u8::new(player1, 1, true)),
+            (Cube::from((0, 1)), u8::new(player1, 1, true)),
+            (Cube::from((1, 1)), u8::new(player1, 1, true)),
+            (Cube::from((2, 1)), u8::new(player1, 1, true)),
+            (Cube::from((0, 2)), u8::new(player1, 2, true)),
+            (Cube::from((1, 2)), u8::new(player1, 5, true)),
+            (Cube::from((2, 0)), u8::new(player1, 1, true)),
         ];
-        let grid: Grid<Hold> = hexes.into_iter().collect();
+        let grid: Grid<u8> = hexes.into_iter().collect();
         let board = Board::new(players, grid.change_to_rectangle(3, 3), 0, 0);
 
         // Test
@@ -519,17 +519,16 @@ mod test {
         let player1 = Player::new(1, 'A');
         let player2 = Player::new(2, 'B');
         let players = Players::new(2);
-        let hexes: Vec<(Cube, Hold)> = vec![
-            (Cube::from((0, 0)), Hold::new(player2, 1, true)),
-            (Cube::from((1, 0)), Hold::new(player1, 1, true)),
-            (Cube::from((2, 0)), Hold::new(player1, 2, true)),
+        let hexes: Vec<(Cube, u8)> = vec![
+            (Cube::from((0, 0)), u8::new(player2, 1, true)),
+            (Cube::from((1, 0)), u8::new(player1, 1, true)),
+            (Cube::from((2, 0)), u8::new(player1, 2, true)),
         ];
 
-        let grid: Grid<Hold> = hexes.into_iter().collect();
+        let grid: Grid<u8> = hexes.into_iter().collect();
         let board = Board::new(players, grid.change_to_rectangle(3, 1), 0, 0);
 
         // Test
         assert!(stalemate(&board));
     }
 }
-

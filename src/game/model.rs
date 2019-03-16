@@ -6,7 +6,7 @@ use std::{fmt, ops, cmp};
 use derive_getters::Getters;
 
 use crate::hexagon::{Cube, Grid};
-use super::{Player, Players};
+use super::{Player, Players, player};
 
 pub type FromHex = Cube;
 pub type ToHex = Cube;
@@ -31,21 +31,38 @@ pub trait Holding {
 
 impl Holding for u8 {
     fn new(owner: Player, dice: u8, mobile: bool) -> Self {
-        //let owner_num = owner.number as u8;
-        //let dice_shf =
-        0
+        let player_num = *owner.number() as u8;
+        let player_num = player_num.to_le() << 5;
+        let player_num = player_num >> 5;
+
+        let dice = dice.to_le() << 5;
+        let dice = dice >> 2;
+
+        let mobile: u8 = mobile.into();
+        let mobile = mobile.to_le() << 7;
+        let mobile = mobile >> 1;
+
+        u8::from_le(mobile | dice | player_num)
     }
 
     fn owner(&self) -> Player {
-        Player::new(1, 'A')
+        let val = self.to_le() << 5;
+        let val = val >> 5;
+        player::create(u8::from_le(val) as usize)
     }
 
     fn dice(&self) -> u8 {
-        1
+        let val = self.to_le() >> 3;
+        let val = val << 5;
+        let val = val >> 5;
+        u8::from_le(val)
     }
 
     fn mobile(&self) -> bool {
-        true
+        let val = self.to_le() << 1;
+        let val = val >> 7;
+        let boolean = u8::from_le(val);
+        (true as u8) == boolean
     }
 }
 
@@ -93,38 +110,40 @@ impl Default for Hold {
 }
 
 /// The full state of the game. Represents an iteration of play.
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Getters)]
 pub struct Board {
     players: Players,
-    grid: Grid<Hold>,
+    //grid: Grid<Hold>,
+    grid: Grid<u8>,
     captured_dice: u8,
     moved: u8,
 }
 
 impl Board {
-    pub fn new(players: Players, grid: Grid<Hold>, captured_dice: u8, moved: u8) -> Self {
+    pub fn new(players: Players, grid: Grid<u8>, captured_dice: u8, moved: u8) -> Self {
         Board { players, grid, captured_dice, moved }
-    }
-
-    pub fn players(&self) -> &Players {
-        &self.players
-    }
-
-    pub fn grid(&self) -> &Grid<Hold> {
-        &self.grid
-    }
-
-    pub fn captured_dice(&self) -> &u8 {
-        &self.captured_dice
-    }
-
-    pub fn moved(&self) -> &u8 {
-        &self.moved
     }
 }
 
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Little hack. Since we've switched to using a bit packed u8 instead of `Hold`,
+        // it screws up the display. So we'll generate a once-off `Grid<Hold>` just
+        // to print it to screen.
+        let (columns, rows) = match self.grid.shape() {
+            crate::hexagon::grid::Shape::Rectangular { columns, rows } => (columns, rows),
+            _ => panic!("Display impl is a hack."),
+        };
+        
+        let display_grid: Grid<Hold> = self.grid
+            .iter()
+            .map(|ht| (
+                *ht.coordinate(),
+                Hold::new(ht.data().owner(), ht.data().dice(), ht.data().mobile())
+            ))
+            .collect();
+        let display_grid = display_grid.change_to_rectangle(columns, rows);
+        
         write!(
             f,
             "Current Player: {}\nCaptured Dice: {}, Moved: {} time(s). \
@@ -132,7 +151,7 @@ impl fmt::Display for Board {
             &self.players.current(),
             &self.captured_dice,
             &self.moved,
-            &self.grid,
+            &display_grid,
         )
     }
 }
@@ -411,7 +430,7 @@ mod test {
     use std::error;
 
     use crate::game;
-    use super::super::build_tree;
+    use super::super::{build_tree, Player};
     use super::*;
 
     #[test]
@@ -430,6 +449,43 @@ mod test {
         let tree = build_tree(start.clone(), 1);
 
         assert!(tree.root == start);
+
+        Ok(())
+    }
+
+    #[test]
+    fn u8_holding_01() -> Result<(), Box<dyn error::Error>> {
+        let player1 = Player::new(1, 'A');
+        let holding = u8::new(player1, 2, true);
+
+        assert!(holding.owner() == player1);
+        assert!(holding.dice() == 2);
+        assert!(holding.mobile() == true);
+
+        Ok(())
+    }
+
+    #[test]
+    fn u8_holding_02() -> Result<(), Box<dyn error::Error>> {
+        let player1 = Player::new(5, 'E');
+        let holding = u8::new(player1, 1, false);
+
+        assert!(holding.owner() == player1);
+        assert!(holding.dice() == 1);
+        assert!(holding.mobile() == false);
+
+        Ok(())
+    }
+
+    #[test]
+    fn u8_holding_03() -> Result<(), Box<dyn error::Error>> {
+        let player1 = Player::new(6, 'F');
+        let holding = u8::new(player1, 5, true);
+
+        dbg!(holding.owner());
+        assert!(holding.owner() == player1);
+        assert!(holding.dice() == 5);
+        assert!(holding.mobile() == true);
 
         Ok(())
     }

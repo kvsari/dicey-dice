@@ -4,6 +4,7 @@
 //! This exists in its own module as it contains lots of code and doesn't depend on
 //! anything else within this project.
 use std::{fmt, mem};
+use std::num::NonZeroUsize;
 
 use rand::Rng;
 use rand::distributions::Distribution;
@@ -42,15 +43,14 @@ impl fmt::Display for Player {
     }
 }
 
-/*
-/// Relies on `MAX_PLAYERS` constant to wrap the `num` via modulus. Generates `Player`.
-pub fn wrapped_create(num: usize) -> Player {
-    let number = if num == 0 {
-        0
-    } else {
-        
+/// Relies on `MAX_PLAYERS` constant to check the num.
+pub (in crate::game) fn create(num: usize) -> Player {
+    assert!(num > 0);
+    assert!(num <= MAX_PLAYERS);
+    
+    let character: char = ((64 + num) as u8).into();
+    Player::new(num, character)
 }
-*/
 
 /// Player management rolled into one struct. Keeps track of the current player and
 /// emits the next player. There is an upper limit of `MAX_PLAYERS` players.

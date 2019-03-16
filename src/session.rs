@@ -283,7 +283,7 @@ impl Session {
                     .fork_with(|coordinate, hold| {
                         // Freeze the losing hex til next turn.
                         if coordinate == &attacker_coordinate {
-                            game::model::Hold::new(hold.owner(), hold.dice(), false)
+                            u8::new(hold.owner(), hold.dice(), false)
                         } else {
                             hold
                         }
