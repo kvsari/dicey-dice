@@ -417,7 +417,7 @@ mod test {
     #[test]
     fn board_matches_board_2x1() -> Result<(), Box<dyn error::Error>> {
         let start = game::canned_2x1_start01();
-        let tree = build_tree(start.clone());
+        let tree = build_tree(start.clone(), 1);
 
         assert!(tree.root == start);
 
@@ -427,7 +427,7 @@ mod test {
     #[test]
     fn board_matches_board_2x2() -> Result<(), Box<dyn error::Error>> {
         let start = game::canned_2x2_start01();
-        let tree = build_tree(start.clone());
+        let tree = build_tree(start.clone(), 1);
 
         assert!(tree.root == start);
 

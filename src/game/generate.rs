@@ -273,7 +273,7 @@ mod test {
     #[test]
     fn breadth_first_on_canned_2x1_start01() {
         let board = canned_2x1_start01();
-        let (states, _stats) = breadth_first_calc_consequences(board.clone());
+        let (states, _stats) = breadth_first_calc_consequences(board.clone(), 10);
         assert!(states.len() == 3);
         assert!(states.contains_key(&board));
     }
@@ -281,7 +281,7 @@ mod test {
     #[test]
     fn breadth_first_on_canned_2x2_start01() {
         let board = canned_2x2_start01();
-        let (states, _stats) = breadth_first_calc_consequences(board.clone());
+        let (states, _stats) = breadth_first_calc_consequences(board.clone(), 10);
         assert!(states.len() == 4);
         assert!(states.contains_key(&board));
     }
@@ -289,16 +289,16 @@ mod test {
     #[test]
     fn consequences_3x1_2player() {
         let board = canned_3x1_start01();
-        let consequences = calculate_all_consequences(board.clone());
+        let consequences = calculate_all_consequences(board.clone(), 10);
 
-        assert!(consequences.len() == 8);
+        assert!(consequences.len() == 2);
     }
 
     #[test]
     fn consequences_3x1_3player() {
         let board = canned_3x1_start05();
-        let consequences = calculate_all_consequences(board.clone());
+        let consequences = calculate_all_consequences(board.clone(), 20);
 
-        assert!(consequences.len() == 9);
+        assert!(consequences.len() == 14);
     }
 }

@@ -183,7 +183,7 @@ mod test {
 
     #[test]
     fn insta_win_1x1() {
-        let tree = build_tree(game::canned_1x1_start());
+        let tree = build_tree(game::canned_1x1_start(), 100);
         score_tree(&tree);
 
         let choices = tree.fetch_choices(tree.root()).unwrap();
@@ -195,7 +195,7 @@ mod test {
 
     #[test]
     fn insta_win_2x1() {
-        let tree = build_tree(game::canned_2x1_start03());
+        let tree = build_tree(game::canned_2x1_start03(), 100);
         score_tree(&tree);
 
         let choices = tree.fetch_choices(tree.root()).unwrap();
@@ -207,7 +207,7 @@ mod test {
 
     #[test]
     fn stalemate_2x1() {
-        let tree = build_tree(game::canned_2x1_start02());
+        let tree = build_tree(game::canned_2x1_start02(), 20);
         score_tree(&tree);
 
         let choices = tree.fetch_choices(tree.root()).unwrap();
@@ -219,7 +219,7 @@ mod test {
 
     #[test]
     fn game_2x1() {
-        let tree = build_tree(game::canned_2x1_start01());
+        let tree = build_tree(game::canned_2x1_start01(), 20);
         score_tree(&tree);
 
         // First move
@@ -242,7 +242,7 @@ mod test {
 
     #[test]
     fn insta_win_3x1() {
-        let tree = build_tree(game::canned_3x1_start02());
+        let tree = build_tree(game::canned_3x1_start02(), 10);
         score_tree(&tree);
 
         // There are actually two moves as player 'B' is the winner. Player 'A' has to
@@ -262,7 +262,7 @@ mod test {
 
     #[test]
     fn stalemate_3x1() {
-        let tree = build_tree(game::canned_3x1_start03());
+        let tree = build_tree(game::canned_3x1_start03(), 20);
         score_tree(&tree);
 
         let choices = tree.fetch_choices(tree.root()).unwrap();
@@ -272,9 +272,10 @@ mod test {
         assert!(*score.distance() == 0);
     }
 
+    /*
     #[test]
     fn game_3x1() {
-        let tree = build_tree(game::canned_3x1_start01());
+        let tree = build_tree(game::canned_3x1_start01(), 100);
         score_tree(&tree);
 
         // Player 'B' is the eventual winner. But player 'A' needs to pass first.
@@ -326,10 +327,23 @@ mod test {
         assert!(choices.len() == 1);
         assert!(choices[0].score().unwrap() == Score::new(1_f64, 0));
     }
+     */
+
+    /// Redo of the test above due to rules changes allowing equal die amounts to fight
+    /// because dice rolling has been introduced. Thus 'A' now wins very quickly.
+    #[test]
+    fn game_3x1() {
+        let tree = build_tree(game::canned_3x1_start01(), 20);
+        score_tree(&tree);
+
+        let choices = tree.fetch_choices(tree.root()).unwrap();
+        assert!(choices.len() == 1);
+        assert!(choices[0].score().unwrap() == Score::new(1_f64, 1));
+    }
 
     #[test]
     fn stalemate_3x1_v2() {
-        let tree = build_tree(game::canned_3x1_start04());
+        let tree = build_tree(game::canned_3x1_start04(), 100);
         score_tree(&tree);
 
         let choices = tree.fetch_choices(tree.root()).unwrap();
@@ -338,17 +352,4 @@ mod test {
         assert!(*score.destination() >= 0.3_f64);
         assert!(*score.distance() == 0);
     }
-
-    /*
-    #[test]
-    fn game_3x1_3p() {
-        let mut tree: Tree = game::canned_3x1_start05().into();
-        score_tree(&mut tree);
-
-        // Player 'B' is the eventual winner. But player 'A' needs to pass first.
-        let choices = tree.fetch_choices(tree.root()).unwrap();
-        assert!(choices.len() == 1);
-        assert!(choices[0].score().unwrap() == Score::new(0_f64, 5));
-    }
-    */
 }

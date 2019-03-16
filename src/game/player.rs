@@ -42,6 +42,16 @@ impl fmt::Display for Player {
     }
 }
 
+/*
+/// Relies on `MAX_PLAYERS` constant to wrap the `num` via modulus. Generates `Player`.
+pub fn wrapped_create(num: usize) -> Player {
+    let number = if num == 0 {
+        0
+    } else {
+        
+}
+*/
+
 /// Player management rolled into one struct. Keeps track of the current player and
 /// emits the next player. There is an upper limit of `MAX_PLAYERS` players.
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]

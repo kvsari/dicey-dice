@@ -423,9 +423,10 @@ mod test {
     fn state_from_board_2x1() -> Result<(), Box<dyn error::Error>> {
         let start = game::canned_2x1_start01();
         let s_grid = start.grid().to_owned();
-        let tree = game::build_tree(start.clone());
+        let tree = game::build_tree(start.clone(), 10);
+        let last_attack = LastAttack::default();
 
-        let state = state_from_board(&start, &tree).unwrap();
+        let state = state_from_board(start, &tree, last_attack).unwrap();
         let f_grid = state.board().grid().to_owned();
 
         assert!(s_grid == f_grid);
@@ -437,9 +438,10 @@ mod test {
     fn state_from_board_2x2() -> Result<(), Box<dyn error::Error>> {
         let start = game::canned_2x2_start01();
         let s_grid = start.grid().to_owned();
-        let tree = game::build_tree(start.clone());
+        let tree = game::build_tree(start.clone(), 10);
+        let last_attack = LastAttack::default();
 
-        let state = state_from_board(&start, &tree).unwrap();
+        let state = state_from_board(start, &tree, last_attack).unwrap();
         let f_grid = state.board().grid().to_owned();
 
         assert!(s_grid == f_grid);
