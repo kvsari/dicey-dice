@@ -11,7 +11,7 @@ mod generate;
 mod rules;
 mod score;
 
-pub use model::{Board, Tree, Choice, Action, Consequence, Score};
+pub use model::{Board, Tree, Choice, Action, Consequence, Score, Holding};
 pub use player::{Player, Players};
 pub use generate::{
     start_tree_horizon_limited,

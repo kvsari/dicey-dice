@@ -14,8 +14,43 @@ pub type Capturing = u8;
 pub type AttackerDice = u8;
 pub type DefenderDice = u8;
 
+pub trait Holding {
+    fn new(owner: Player, dice: u8, mobile: bool) -> Self;
+    fn owner(&self) -> Player;
+    fn dice(&self) -> u8;
+    fn mobile(&self) -> bool;
+
+    fn as_string(&self) -> String {
+        if self.mobile() {
+            format!("{}|{}", self.owner(), self.dice())
+        } else {
+            format!("{}#{}", self.owner(), self.dice())
+        }
+    }
+}
+
+impl Holding for u8 {
+    fn new(owner: Player, dice: u8, mobile: bool) -> Self {
+        //let owner_num = owner.number as u8;
+        //let dice_shf =
+        0
+    }
+
+    fn owner(&self) -> Player {
+        Player::new(1, 'A')
+    }
+
+    fn dice(&self) -> u8 {
+        1
+    }
+
+    fn mobile(&self) -> bool {
+        true
+    }
+}
+
 /// A territorial hold on a particular tile.
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Getters)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct Hold {
     /// AKA the player.
     owner: Player,
@@ -27,19 +62,27 @@ pub struct Hold {
     mobile: bool,
 }
 
-impl Hold {
-    pub fn new(owner: Player, dice: u8, mobile: bool) -> Hold {
+impl Holding for Hold {
+    fn new(owner: Player, dice: u8, mobile: bool) -> Self {
         Hold { owner, dice, mobile }
+    }
+
+    fn owner(&self) -> Player {
+        self.owner
+    }
+
+    fn dice(&self) -> u8 {
+        self.dice
+    }
+
+    fn mobile(&self) -> bool {
+        self.mobile
     }
 }
 
 impl fmt::Display for Hold {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.mobile {
-            write!(f, "{}|{}", &self.owner, &self.dice)
-        } else {
-            write!(f, "{}#{}", &self.owner, &self.dice)
-        }
+        write!(f, "{}", self.as_string())
     }
 }
 
@@ -50,7 +93,7 @@ impl Default for Hold {
 }
 
 /// The full state of the game. Represents an iteration of play.
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Getters)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Board {
     players: Players,
     grid: Grid<Hold>,
@@ -61,6 +104,22 @@ pub struct Board {
 impl Board {
     pub fn new(players: Players, grid: Grid<Hold>, captured_dice: u8, moved: u8) -> Self {
         Board { players, grid, captured_dice, moved }
+    }
+
+    pub fn players(&self) -> &Players {
+        &self.players
+    }
+
+    pub fn grid(&self) -> &Grid<Hold> {
+        &self.grid
+    }
+
+    pub fn captured_dice(&self) -> &u8 {
+        &self.captured_dice
+    }
+
+    pub fn moved(&self) -> &u8 {
+        &self.moved
     }
 }
 

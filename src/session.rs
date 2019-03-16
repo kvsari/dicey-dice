@@ -5,7 +5,7 @@ use std::fmt;
 use derive_getters::Getters;
 use rand::{rngs, Rng};
 
-use crate::game::{self, Tree, Board, Players, Player, Choice, Action, Consequence};
+use crate::game::{self, Tree, Board, Players, Player, Choice, Action, Consequence, Holding};
 
 fn roll_d6s<T: Rng>(d6s: u8, random: &mut T) -> usize {
     (0..d6s)
@@ -283,7 +283,7 @@ impl Session {
                     .fork_with(|coordinate, hold| {
                         // Freeze the losing hex til next turn.
                         if coordinate == &attacker_coordinate {
-                            game::model::Hold::new(*hold.owner(), *hold.dice(), false)
+                            game::model::Hold::new(hold.owner(), hold.dice(), false)
                         } else {
                             hold
                         }

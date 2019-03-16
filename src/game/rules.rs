@@ -88,7 +88,7 @@ fn winner(board: &Board) -> bool {
         .grid()
         .iter()
         .try_for_each(|ht| {
-            if ht.data().owner() == &player {
+            if ht.data().owner() == player {
                 Ok(())
             } else {
                 Err(())
@@ -104,7 +104,7 @@ fn loser(board: &Board) -> bool {
         .grid()
         .iter()
         .try_for_each(|ht| {
-            if ht.data().owner() != &player {
+            if ht.data().owner() != player {
                 Ok(())
             } else {
                 Err(())
@@ -144,9 +144,9 @@ fn stalemate(board: &Board) -> bool {
                                 // Check if the other tile is held by another.
                                 if other.owner() != hold.owner() {
                                     // If so, we check if an attack is possible.
-                                    if *other.dice() > 1 || *hold.dice() > 1 {
+                                    if other.dice() > 1 || hold.dice() > 1 {
                                         // The rules state that even dice can't attack.
-                                        if *other.dice() != *hold.dice() {
+                                        if other.dice() != hold.dice() {
                                             // An attack is possible. Short-circuit out.
                                             Err(())
                                         } else {
@@ -179,7 +179,7 @@ fn all_legal_attacks_from(grid: &Grid<Hold>, player: &Player) -> Vec<Action> {
             let coordinate = *hex_tile.coordinate();
             let hold = *hex_tile.data();
 
-            if hold.owner() == player && *hold.mobile() {
+            if hold.owner() == *player && hold.mobile() {
                 moves.extend(
                     coordinate
                         .neighbours()
@@ -190,15 +190,15 @@ fn all_legal_attacks_from(grid: &Grid<Hold>, player: &Player) -> Vec<Action> {
                                 .ok() // Ignore the misses
                                 .and_then(|d| {
                                     //dbg!(d);
-                                    if d.owner() != player {
+                                    if d.owner() != *player {
                                         // We have an enemy tile. We count dice.
-                                        if hold.dice() > &1 && d.dice() <= hold.dice() {
+                                        if hold.dice() > 1 && d.dice() <= hold.dice() {
                                             // Player has more dice! 
                                             Some(Action::Attack(
                                                 coordinate,
                                                 *neighbour,
-                                                *hold.dice(),
-                                                *d.dice(),
+                                                hold.dice(),
+                                                d.dice(),
                                             ))
                                         } else {
                                             // Player doesn't have enough dice.
@@ -233,8 +233,8 @@ fn attacking_move(grid: &Grid<Hold>, from: Cube, to: Cube) -> Grid<Hold> {
     let (to_hold, from_hold) = grid
         .fetch(&from)
         .map(|h| (
-            Hold::new(*h.owner(), *h.dice() - 1, *h.mobile()),
-            Hold::new(*h.owner(), 1, *h.mobile())
+            Hold::new(h.owner(), h.dice() - 1, h.mobile()),
+            Hold::new(h.owner(), 1, h.mobile())
         ))
         .expect("Invalid from coordinate.");
 
@@ -290,8 +290,8 @@ fn reinforce02(grid: &Grid<Hold>, player: Player, reinforcements: u8) -> Grid<Ho
         .unwrap_or(0);
 
     grid.fork_with(|_, hold| {
-        if hold.owner() == &player {
-            let dice = *hold.dice();
+        if hold.owner() == player {
+            let dice = hold.dice();
             let diff = MAX_DICE - dice;
             let add = if reinforcements > diff {
                 reinforcements -= diff;

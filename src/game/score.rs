@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::mem;
 
-use super::{Board, Player, Tree, Consequence, Score};
+use super::{Board, Player, Tree, Consequence, Score, Holding};
 
 /// Wipe all scoring from the tree.
 pub fn clear_all_scoring(tree: &Tree) {
@@ -63,7 +63,7 @@ fn score_board(board: &Board) -> HashMap<Player, Score> {
         .grid()
         .iter()
         .for_each(|ht| {
-            count.entry(*ht.data().owner())
+            count.entry(ht.data().owner())
                 .and_modify(|c| *c += 1)
                 .or_insert(1);
         });
